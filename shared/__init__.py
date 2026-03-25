@@ -10,11 +10,25 @@ from .json_utils import (
     robust_json_loads,
     JSONParseError,
 )
+from .state_machine import (
+    StateMachine,
+    StateTransitionError,
+    validate_state_transition,
+    validate,
+    get_next_states,
+)
 
 __all__ = [
+    # JSON utilities
     "safe_json_parse",
     "parse_with_validation", 
     "extract_json_from_text",
     "robust_json_loads",
     "JSONParseError",
+    # State machine
+    "StateMachine",
+    "StateTransitionError",
+    "validate_state_transition",
+    "validate",
+    "get_next_states",
 ]

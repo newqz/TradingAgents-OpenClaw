@@ -214,7 +214,31 @@ class AnalysisState(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
     
     def update_status(self, status: AnalysisStatus):
-        """更新状态"""
+        """
+        更新状态 (带状态机验证)
+        
+        Raises:
+            ValueError: 非法状态转换
+        """
+        # 状态转换验证
+        valid_transitions = {
+            AnalysisStatus.INITIAL: {AnalysisStatus.ANALYZING, AnalysisStatus.FAILED},
+            AnalysisStatus.ANALYZING: {AnalysisStatus.RESEARCHING, AnalysisStatus.FAILED},
+            AnalysisStatus.RESEARCHING: {AnalysisStatus.DEBATING, AnalysisStatus.FAILED},
+            AnalysisStatus.DEBATING: {AnalysisStatus.RISK_ASSESSING, AnalysisStatus.FAILED},
+            AnalysisStatus.RISK_ASSESSING: {AnalysisStatus.FINALIZING, AnalysisStatus.FAILED},
+            AnalysisStatus.FINALIZING: {AnalysisStatus.COMPLETED, AnalysisStatus.FAILED},
+            AnalysisStatus.COMPLETED: set(),
+            AnalysisStatus.FAILED: set(),
+        }
+        
+        allowed = valid_transitions.get(self.status, set())
+        if status not in allowed:
+            raise ValueError(
+                f"Invalid state transition: {self.status.value} → {status.value}. "
+                f"Allowed: {[s.value for s in allowed]}"
+            )
+        
         self.status = status
         self.updated_at = datetime.now()
     

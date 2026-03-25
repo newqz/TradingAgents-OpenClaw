@@ -14,8 +14,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 # 使用共享配置模块设置路径
-from shared import config
-config.setup_paths()
+import shared.config as config_module
+config_module.setup_paths()
 
 from shared.models import (
     AnalysisState,
