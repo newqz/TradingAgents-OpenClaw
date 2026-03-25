@@ -1,12 +1,14 @@
+---
+name: skill-tao-trader-bear
+description: "空头交易员 Skill。执行看空策略，提供卖出建议和做空方案。"
+metadata:
+  {
+    "openclaw": { "emoji": "🔴", "requires": {} }
+  }
+---
+
 # Skill: skill-tao-trader-bear
 
 ## 描述
 
-保守交易员 Skill，制定防御性的交易策略。
-
-## 职责
-
-- 基于研究综合制定卖出/减仓策略
-- 设定止损位保护本金
-- 识别下行风险
-- 给出保守的仓位建议
+空头交易员角色，提供做空/卖出建议。
