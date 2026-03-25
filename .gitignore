@@ -47,3 +47,4 @@ original-repo/
 # OS
 .DS_Store
 Thumbs.db
+.openclaw/

@@ -39,7 +39,7 @@ TOOLS_CATEGORIES = {
 }
 
 # 供应商列表
-VENDOR_LIST = ["yfinance", "alpha_vantage", "finnhub", "tushare", "china_stock", "sina_stock", "crypto"]
+VENDOR_LIST = ["yfinance", "alpha_vantage", "finnhub", "tushare", "china_stock", "sina_stock", "crypto", "china_social"]
 
 
 class CacheManager:
@@ -294,6 +294,7 @@ class DataProvider:
         tushare_mod = _load_vendor("tushare_client")
         sina_stock_mod = _load_vendor("sina_stock_client")
         crypto_mod = _load_vendor("crypto_client")
+        china_social_mod = _load_vendor("china_social_client")
         
         # 初始化供应商客户端
         self._vendors = {
@@ -316,6 +317,7 @@ class DataProvider:
                 api_key=self.config.get("crypto_api_key") or
                         os.getenv("CRYPTO_API_KEY")
             ) if crypto_mod else None,
+            "china_social": china_social_mod.ChinaSocialClient() if china_social_mod else None,
         }
         
         # 保存供应商模块引用用于方法映射
@@ -327,6 +329,7 @@ class DataProvider:
             "china_stock": china_stock_mod,
             "sina_stock": sina_stock_mod,
             "crypto": crypto_mod,
+            "china_social": china_social_mod,
         }
         
         # 供应商方法映射 (动态构建)
