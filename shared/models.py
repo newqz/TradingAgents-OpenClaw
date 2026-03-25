@@ -284,6 +284,311 @@ class FeishuReportCard(BaseModel):
     actions: List[Dict[str, Any]] = Field(default_factory=list)
 
 
+# ============== 多模型配置 ==============
+
+class ModelInfo(BaseModel):
+    """模型信息"""
+    name: str                    # 模型名称 (如 gpt-4o)
+    provider: str                # 提供商 (openai, anthropic, etc.)
+    context_window: int = 128000  # 上下文窗口 (tokens)
+    max_output: int = 16384      # 最大输出 (tokens)
+    cost_per_1k_input: float = 0.0   # 输入成本 ($/1K tokens)
+    cost_per_1k_output: float = 0.0  # 输出成本 ($/1K tokens)
+    capabilities: List[str] = []  # 能力列表 (reasoning, vision, function_calling, etc.)
+    quality_tier: str = "standard"  # quality_tier: premium, standard, budget
+    
+
+class ModelRegistry:
+    """
+    模型注册表
+    支持动态添加和查询模型
+    """
+    
+    _models: Dict[str, ModelInfo] = {}
+    
+    @classmethod
+    def register(cls, model_info: ModelInfo):
+        """注册模型"""
+        key = f"{model_info.provider}/{model_info.name}"
+        cls._models[key] = model_info
+    
+    @classmethod
+    def get(cls, provider: str, name: str) -> Optional[ModelInfo]:
+        """获取模型信息"""
+        key = f"{provider}/{name}"
+        return cls._models.get(key)
+    
+    @classmethod
+    def get_by_key(cls, model_key: str) -> Optional[ModelInfo]:
+        """通过 key 获取模型 (provider/name)"""
+        return cls._models.get(model_key)
+    
+    @classmethod
+    def list_models(cls, provider: Optional[str] = None) -> List[ModelInfo]:
+        """列出所有模型"""
+        if provider:
+            return [m for m in cls._models.values() if m.provider == provider]
+        return list(cls._models.values())
+    
+    @classmethod
+    def find_best(cls, 
+                  task: str,
+                  quality_tier: str = "standard",
+                  max_cost: Optional[float] = None) -> Optional[ModelInfo]:
+        """
+        根据任务找到最佳模型
+        
+        Args:
+            task: 任务类型 (analysis, research, trading, summary)
+            quality_tier: 质量层级 (premium, standard, budget)
+            max_cost: 最大成本限制
+        """
+        candidates = [m for m in cls._models.values() 
+                     if m.quality_tier == quality_tier]
+        
+        if not candidates:
+            candidates = list(cls._models.values())
+        
+        # 按任务能力筛选
+        task_capabilities = {
+            "analysis": ["reasoning", "data_analysis"],
+            "research": ["reasoning", "research"],
+            "trading": ["reasoning", "fast"],
+            "summary": ["fast"],
+            "debate": ["reasoning", "debate"],
+        }
+        
+        required = task_capabilities.get(task, ["reasoning"])
+        candidates = [m for m in candidates 
+                     if any(cap in m.capabilities for cap in required)]
+        
+        if max_cost:
+            candidates = [m for m in candidates 
+                         if m.cost_per_1k_input <= max_cost]
+        
+        return candidates[0] if candidates else None
+
+
+class ModelSelector:
+    """
+    模型选择器
+    根据任务类型自动选择最佳模型
+    """
+    
+    # 任务到模型的默认映射
+    DEFAULT_TASK_MODEL = {
+        "fundamental_analysis": "openai/gpt-4o",
+        "technical_analysis": "openai/gpt-4o-mini",
+        "sentiment_analysis": "openai/gpt-4o-mini",
+        "research_debate": "anthropic/claude-opus-4.6",
+        "risk_assessment": "anthropic/claude-sonnet-4.6",
+        "trading_decision": "openai/gpt-4o",
+        "summary": "openai/gpt-4o-mini",
+    }
+    
+    def __init__(self, config: Optional[Dict[str, str]] = None):
+        """
+        初始化模型选择器
+        
+        Args:
+            config: 自定义任务→模型映射
+        """
+        self.task_model_map = dict(self.DEFAULT_TASK_MODEL)
+        if config:
+            self.task_model_map.update(config)
+    
+    def get_model_for_task(self, task: str) -> str:
+        """
+        获取任务对应的模型
+        
+        Args:
+            task: 任务类型
+            
+        Returns:
+            模型 key (provider/name)
+        """
+        return self.task_model_map.get(task, "openai/gpt-4o")
+    
+    def get_llm_config_for_task(self, task: str):  # -> LLMConfig:
+        """
+        获取任务对应的完整LLM配置
+        
+        Args:
+            task: 任务类型
+            
+        Returns:
+            LLMConfig 对象
+        """
+        model_key = self.get_model_for_task(task)
+        parts = model_key.split("/", 1)
+        provider = parts[0] if len(parts) > 1 else "openai"
+        model_name = parts[1] if len(parts) > 1 else model_key
+        
+        return LLMConfig(provider=provider, model=model_name)
+    
+    def set_model(self, task: str, model_key: str):
+        """设置任务使用的模型"""
+        self.task_model_map[task] = model_key
+
+
+# 预注册模型
+def _register_default_models():
+    """注册默认模型库"""
+    models = [
+        # OpenAI Models
+        ModelInfo(
+            name="gpt-4o",
+            provider="openai",
+            context_window=128000,
+            max_output=16384,
+            cost_per_1k_input=0.005,
+            cost_per_1k_output=0.015,
+            capabilities=["reasoning", "vision", "function_calling", "data_analysis"],
+            quality_tier="premium"
+        ),
+        ModelInfo(
+            name="gpt-4o-mini",
+            provider="openai",
+            context_window=128000,
+            max_output=16384,
+            cost_per_1k_input=0.00015,
+            cost_per_1k_output=0.0006,
+            capabilities=["reasoning", "fast", "function_calling"],
+            quality_tier="standard"
+        ),
+        ModelInfo(
+            name="gpt-4-turbo",
+            provider="openai",
+            context_window=128000,
+            max_output=16384,
+            cost_per_1k_input=0.01,
+            cost_per_1k_output=0.03,
+            capabilities=["reasoning", "vision", "function_calling"],
+            quality_tier="premium"
+        ),
+        ModelInfo(
+            name="o1-preview",
+            provider="openai",
+            context_window=128000,
+            max_output=32768,
+            cost_per_1k_input=0.015,
+            cost_per_1k_output=0.06,
+            capabilities=["reasoning", "research", "complex_analysis"],
+            quality_tier="premium"
+        ),
+        ModelInfo(
+            name="o1-mini",
+            provider="openai",
+            context_window=128000,
+            max_output=32768,
+            cost_per_1k_input=0.003,
+            cost_per_1k_output=0.012,
+            capabilities=["reasoning", "fast"],
+            quality_tier="standard"
+        ),
+        # Anthropic Models
+        ModelInfo(
+            name="claude-opus-4.6",
+            provider="anthropic",
+            context_window=200000,
+            max_output=4096,
+            cost_per_1k_input=0.015,
+            cost_per_1k_output=0.075,
+            capabilities=["reasoning", "research", "debate", "complex_analysis"],
+            quality_tier="premium"
+        ),
+        ModelInfo(
+            name="claude-sonnet-4.6",
+            provider="anthropic",
+            context_window=200000,
+            max_output=4096,
+            cost_per_1k_input=0.003,
+            cost_per_1k_output=0.015,
+            capabilities=["reasoning", "fast", "analysis"],
+            quality_tier="standard"
+        ),
+        ModelInfo(
+            name="claude-3-5-sonnet-latest",
+            provider="anthropic",
+            context_window=200000,
+            max_output=8192,
+            cost_per_1k_input=0.003,
+            cost_per_1k_output=0.015,
+            capabilities=["reasoning", "vision", "fast"],
+            quality_tier="standard"
+        ),
+        ModelInfo(
+            name="claude-3-5-haiku-latest",
+            provider="anthropic",
+            context_window=200000,
+            max_output=8192,
+            cost_per_1k_input=0.0008,
+            cost_per_1k_output=0.004,
+            capabilities=["reasoning", "fast"],
+            quality_tier="budget"
+        ),
+        # Google Models
+        ModelInfo(
+            name="gemini-2.0-flash-exp",
+            provider="google",
+            context_window=1000000,
+            max_output=8192,
+            cost_per_1k_input=0.0,
+            cost_per_1k_output=0.0,
+            capabilities=["reasoning", "fast", "vision", "large_context"],
+            quality_tier="premium"
+        ),
+        ModelInfo(
+            name="gemini-1.5-flash",
+            provider="google",
+            context_window=1000000,
+            max_output=8192,
+            cost_per_1k_input=0.0,
+            cost_per_1k_output=0.0,
+            capabilities=["reasoning", "fast", "vision", "large_context"],
+            quality_tier="standard"
+        ),
+        ModelInfo(
+            name="gemini-1.5-pro",
+            provider="google",
+            context_window=2000000,
+            max_output=8192,
+            cost_per_1k_input=0.0,
+            cost_per_1k_output=0.0,
+            capabilities=["reasoning", "vision", "large_context", "research"],
+            quality_tier="premium"
+        ),
+        # xAI Models
+        ModelInfo(
+            name="grok-2-1212",
+            provider="xai",
+            context_window=131072,
+            max_output=8192,
+            cost_per_1k_input=0.0005,
+            cost_per_1k_output=0.002,
+            capabilities=["reasoning", "fast", "real_time"],
+            quality_tier="standard"
+        ),
+        ModelInfo(
+            name="grok-2-vision-1212",
+            provider="xai",
+            context_window=32768,
+            max_output=8192,
+            cost_per_1k_input=0.002,
+            cost_per_1k_output=0.002,
+            capabilities=["reasoning", "vision"],
+            quality_tier="standard"
+        ),
+    ]
+    
+    for m in models:
+        ModelRegistry.register(m)
+
+
+# 注册默认模型
+_register_default_models()
+
+
 # ============== 配置模型 ==============
 
 class LLMConfig(BaseModel):
@@ -371,4 +676,9 @@ __all__ = [
     "LLMConfig",
     "DataVendorConfig",
     "TAOConfig",
+    
+    # 多模型配置
+    "ModelInfo",
+    "ModelRegistry",
+    "ModelSelector",
 ]
