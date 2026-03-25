@@ -6,6 +6,7 @@ from .china_stock_client import ChinaStockClient
 from .finnhub_client import FinnhubClient
 from .tushare_client import TuShareClient
 from .sina_stock_client import SinaStockClient
+from .crypto_client import CryptoMarketClient
 
 __all__ = [
     "BaseVendor",
@@ -15,4 +16,5 @@ __all__ = [
     "FinnhubClient",
     "TuShareClient",
     "SinaStockClient",
+    "CryptoMarketClient",
 ]

@@ -93,9 +93,9 @@ class MarketSignal:
 | Phase | Skill | Status | Start Date | End Date | Notes |
 |-------|-------|--------|------------|----------|-------|
 | 4a | eastmoney-stock (SinaStock) | ✅ Completed | 2026-03-25 | 2026-03-25 | 使用Sina Finance API |
-| 4b | crypto-trader | ⏳ Pending | - | - | - |
-| 4c | weibo-trending | ⏳ Pending | - | - | - |
-| 4d | crypto-market-data | ⏳ Pending | - | - | - |
+| 4b | crypto-trader | ✅ Completed | 2026-03-25 | 2026-03-25 | 8策略+多交易所+情感分析 |
+| 4c | weibo-trending | ⚠️ Blocked | - | - | 需微博登录+被标记suspicious |
+| 4d | crypto-market-data | 🔄 In Progress | - | - | Python版实现 |
 
 ## Completed Milestones
 

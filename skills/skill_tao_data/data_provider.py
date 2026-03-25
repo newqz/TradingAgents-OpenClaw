@@ -38,7 +38,7 @@ TOOLS_CATEGORIES = {
 }
 
 # 供应商列表
-VENDOR_LIST = ["yfinance", "alpha_vantage", "finnhub", "tushare", "china_stock", "sina_stock"]
+VENDOR_LIST = ["yfinance", "alpha_vantage", "finnhub", "tushare", "china_stock", "sina_stock", "crypto"]
 
 
 class CacheManager:
@@ -90,6 +90,14 @@ class CacheManager:
 class SymbolClassifier:
     """股票代码分类器"""
     
+    # 常见的加密货币符号 (用于识别)
+    CRYPTO_SYMBOLS = {
+        "BTC", "ETH", "BNB", "XRP", "ADA", "DOGE", "SOL", "DOT",
+        "MATIC", "SHIB", "AVAX", "LINK", "UNI", "ATOM", "LTC",
+        "BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT",
+        "DOGEUSDT", "SOLUSDT", "DOTUSDT", "MATICUSDT"
+    }
+    
     @staticmethod
     def classify(symbol: str) -> str:
         """
@@ -99,9 +107,25 @@ class SymbolClassifier:
             "us_stock" - 美股 (AAPL, NVDA, TSLA)
             "a_stock" - A股 (000001.SZ, 600000.SH)
             "hk_stock" - 港股 (0700.HK, 3690.HK)
+            "crypto" - 加密货币 (BTC, ETH, etc.)
             "unknown" - 未知
         """
         symbol = symbol.upper().strip()
+        
+        # 加密货币识别
+        # 1. 已知加密货币符号
+        if symbol in SymbolClassifier.CRYPTO_SYMBOLS:
+            return "crypto"
+        
+        # 2. USDT交易对格式: BTCUSDT, ETHUSDT, etc.
+        if symbol.endswith("USDT") and len(symbol) <= 10:
+            return "crypto"
+        
+        # 3. 纯字母符号 (3-5字符) 可能是加密货币
+        if re.match(r'^[A-Z]{2,5}$', symbol) and len(symbol) <= 5:
+            # 排除已知的股票代码
+            if symbol not in {"AAPL", "NVDA", "TSLA", "MSFT", "GOOGL", "AMZN", "META", "NFLX"}:
+                return "crypto"
         
         # A股格式: 000001.SZ, 600000.SH, 300001.SZ
         if re.match(r'^\d{6}\.(SZ|SH|SS)$', symbol):
@@ -133,10 +157,12 @@ class SymbolClassifier:
         #   - tushare: 专业A股数据，有基本面
         #   - china_stock: akshare，备用
         # HK stocks: china_stock
+        # Crypto: crypto → yfinance → finnhub
         vendor_map = {
             "us_stock": "yfinance",
             "a_stock": "sina_stock",  # Sina 优先 (实时行情)
-            "hk_stock": "china_stock"
+            "hk_stock": "china_stock",
+            "crypto": "crypto"  # 专用加密货币供应商
         }
         
         return vendor_map.get(stock_type, "yfinance")
@@ -184,6 +210,7 @@ class DataProvider:
         finnhub_mod = _load_vendor("finnhub_client")
         tushare_mod = _load_vendor("tushare_client")
         sina_stock_mod = _load_vendor("sina_stock_client")
+        crypto_mod = _load_vendor("crypto_client")
         
         # 初始化供应商客户端
         self._vendors = {
@@ -202,6 +229,10 @@ class DataProvider:
             ) if tushare_mod else None,
             "china_stock": china_stock_mod.ChinaStockClient() if china_stock_mod else None,
             "sina_stock": sina_stock_mod.SinaStockClient() if sina_stock_mod else None,
+            "crypto": crypto_mod.CryptoMarketClient(
+                api_key=self.config.get("crypto_api_key") or
+                        os.getenv("CRYPTO_API_KEY")
+            ) if crypto_mod else None,
         }
         
         # 保存供应商模块引用用于方法映射
@@ -212,6 +243,7 @@ class DataProvider:
             "tushare": tushare_mod,
             "china_stock": china_stock_mod,
             "sina_stock": sina_stock_mod,
+            "crypto": crypto_mod,
         }
         
         # 供应商方法映射 (动态构建)
@@ -235,6 +267,7 @@ class DataProvider:
         FinnhubClient = _get_vendor_class("finnhub")
         TuShareClient = _get_vendor_class("tushare")
         SinaStockClient = _get_vendor_class("sina_stock")
+        CryptoMarketClient = _get_vendor_class("crypto")
         
         return {
             # core_stock_apis
@@ -245,6 +278,7 @@ class DataProvider:
                 "tushare": TuShareClient.get_stock_data if TuShareClient else None,
                 "china_stock": ChinaStockClient.get_stock_data if ChinaStockClient else None,
                 "sina_stock": SinaStockClient.get_stock_data if SinaStockClient else None,
+                "crypto": CryptoMarketClient.get_stock_data if CryptoMarketClient else None,
             },
             # technical_indicators
             "get_indicators": {
