@@ -730,11 +730,23 @@ _register_default_models()
 
 class LLMConfig(BaseModel):
     """LLM配置"""
-    provider: str = "openai"  # openai, anthropic, google, xai, ollama
+    provider: str = "openai"  # openai, anthropic, google, xai, minimax, ollama
     model: str = "gpt-4o"
     temperature: float = 0.7
     max_tokens: int = 4000
     timeout: int = 60
+
+    def get_base_url(self) -> str:
+        """获取 provider 对应的 API 端点"""
+        BASE_URLS = {
+            "openai": "https://api.openai.com/v1",
+            "anthropic": "https://api.anthropic.com",
+            "google": "https://generativelanguage.googleapis.com/v1beta",
+            "xai": "https://api.x.ai/v1",
+            "minimax": "https://api.minimaxi.com/v1",
+            "ollama": "http://localhost:11434/v1",
+        }
+        return BASE_URLS.get(self.provider, "https://api.openai.com/v1")
 
 
 class DataVendorConfig(BaseModel):

@@ -35,6 +35,10 @@ from .logging_config import (
     error,
     critical,
 )
+from .llm_client import (
+    get_llm_client,
+    get_model_for_provider,
+)
 
 __all__ = [
     # JSON utilities
@@ -65,4 +69,7 @@ __all__ = [
     "warning",
     "error",
     "critical",
+    # LLM Client
+    "get_llm_client",
+    "get_model_for_provider",
 ]

@@ -152,7 +152,7 @@ class TraderDebateOrchestrator:
         if provider == "openai":
             try:
                 from openai import OpenAI
-                return OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+                from shared import get_llm_client; return get_llm_client(provider)
             except ImportError:
                 return None
         return None

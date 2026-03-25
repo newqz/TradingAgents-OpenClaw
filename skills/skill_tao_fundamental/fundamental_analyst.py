@@ -108,14 +108,11 @@ class FundamentalAnalyst:
         """初始化 LLM 客户端"""
         provider = self.config.get("llm_provider", "openai")
         
-        if provider == "openai":
-            try:
-                from openai import OpenAI
-                return OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-            except ImportError:
-                raise ImportError("openai package required: pip install openai")
-        else:
-            raise ValueError(f"Unsupported LLM provider: {provider}")
+        try:
+            from shared import get_llm_client
+            return get_llm_client(provider)
+        except ImportError:
+            raise ImportError("shared package required. Ensure TradingAgents-OpenClaw is properly installed.")
     
     def _call_llm(self, prompt: str, system_message: str) -> str:
         """调用 LLM"""

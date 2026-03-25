@@ -92,7 +92,7 @@ class ResearchManager:
         provider = self.config.get("llm_provider", "openai")
         if provider == "openai":
             from openai import OpenAI
-            return OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            from shared import get_llm_client; return get_llm_client(provider)
         raise ValueError(f"Unsupported LLM provider: {provider}")
     
     def synthesize(self,
