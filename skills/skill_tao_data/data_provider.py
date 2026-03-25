@@ -38,7 +38,7 @@ TOOLS_CATEGORIES = {
 }
 
 # 供应商列表
-VENDOR_LIST = ["yfinance", "alpha_vantage", "china_stock"]
+VENDOR_LIST = ["yfinance", "alpha_vantage", "finnhub", "tushare", "china_stock"]
 
 
 class CacheManager:
@@ -155,19 +155,53 @@ class DataProvider:
     
     def _init_vendors(self):
         """初始化所有供应商客户端"""
-        # 延迟导入，避免循环依赖
-        from .vendors.yfinance_client import YFinanceClient
-        from .vendors.alpha_vantage_client import AlphaVantageClient
-        from .vendors.china_stock_client import ChinaStockClient
+        import importlib.util
+        
+        # 获取 vendors 目录路径
+        vendors_dir = os.path.join(os.path.dirname(__file__), "vendors")
+        
+        def _load_vendor(module_name: str):
+            """动态加载供应商模块"""
+            module_path = os.path.join(vendors_dir, f"{module_name}.py")
+            spec = importlib.util.spec_from_file_location(module_name, module_path)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                return module
+            return None
+        
+        # 加载供应商
+        yfinance_mod = _load_vendor("yfinance_client")
+        alpha_vantage_mod = _load_vendor("alpha_vantage_client")
+        china_stock_mod = _load_vendor("china_stock_client")
+        finnhub_mod = _load_vendor("finnhub_client")
+        tushare_mod = _load_vendor("tushare_client")
         
         # 初始化供应商客户端
         self._vendors = {
-            "yfinance": YFinanceClient(),
-            "alpha_vantage": AlphaVantageClient(
+            "yfinance": yfinance_mod.YFinanceClient() if yfinance_mod else None,
+            "alpha_vantage": alpha_vantage_mod.AlphaVantageClient(
                 api_key=self.config.get("alpha_vantage_api_key") or 
                          os.getenv("ALPHA_VANTAGE_API_KEY")
-            ),
-            "china_stock": ChinaStockClient()
+            ) if alpha_vantage_mod else None,
+            "finnhub": finnhub_mod.FinnhubClient(
+                api_key=self.config.get("finnhub_api_key") or
+                        os.getenv("FINNHUB_API_KEY")
+            ) if finnhub_mod else None,
+            "tushare": tushare_mod.TuShareClient(
+                token=self.config.get("tushare_token") or
+                       os.getenv("TUSHARE_TOKEN")
+            ) if tushare_mod else None,
+            "china_stock": china_stock_mod.ChinaStockClient() if china_stock_mod else None,
+        }
+        
+        # 保存供应商模块引用用于方法映射
+        self._vendor_modules = {
+            "yfinance": yfinance_mod,
+            "alpha_vantage": alpha_vantage_mod,
+            "finnhub": finnhub_mod,
+            "tushare": tushare_mod,
+            "china_stock": china_stock_mod,
         }
         
         # 供应商方法映射 (动态构建)
@@ -175,59 +209,89 @@ class DataProvider:
     
     def _build_vendor_methods(self) -> Dict[str, Dict[str, Any]]:
         """构建供应商方法映射"""
-        from .vendors.yfinance_client import YFinanceClient
-        from .vendors.alpha_vantage_client import AlphaVantageClient
-        from .vendors.china_stock_client import ChinaStockClient
+        # 从已加载的模块获取类
+        def _get_vendor_class(vendor_name: str):
+            """从模块获取供应商类"""
+            mod = self._vendor_modules.get(vendor_name)
+            if not mod:
+                return None
+            class_name = "".join([part.capitalize() for part in vendor_name.split("_")])
+            return getattr(mod, class_name, None)
+        
+        # 使用已加载的模块
+        YFinanceClient = _get_vendor_class("yfinance")
+        AlphaVantageClient = _get_vendor_class("alpha_vantage")
+        ChinaStockClient = _get_vendor_class("china_stock")
+        FinnhubClient = _get_vendor_class("finnhub")
+        TuShareClient = _get_vendor_class("tushare")
         
         return {
             # core_stock_apis
             "get_stock_data": {
-                "alpha_vantage": AlphaVantageClient.get_stock_data,
-                "yfinance": YFinanceClient.get_stock_data,
-                "china_stock": ChinaStockClient.get_stock_data,
+                "yfinance": YFinanceClient.get_stock_data if YFinanceClient else None,
+                "alpha_vantage": AlphaVantageClient.get_stock_data if AlphaVantageClient else None,
+                "finnhub": FinnhubClient.get_stock_data if FinnhubClient else None,
+                "tushare": TuShareClient.get_stock_data if TuShareClient else None,
+                "china_stock": ChinaStockClient.get_stock_data if ChinaStockClient else None,
             },
             # technical_indicators
             "get_indicators": {
-                "alpha_vantage": AlphaVantageClient.get_indicators,
-                "yfinance": YFinanceClient.get_indicators,
-                "china_stock": ChinaStockClient.get_indicators,
+                "yfinance": YFinanceClient.get_indicators if YFinanceClient else None,
+                "alpha_vantage": AlphaVantageClient.get_indicators if AlphaVantageClient else None,
+                "finnhub": FinnhubClient.get_indicators if FinnhubClient else None,
+                "tushare": TuShareClient.get_indicators if TuShareClient else None,
+                "china_stock": ChinaStockClient.get_indicators if ChinaStockClient else None,
             },
             # fundamental_data
             "get_fundamentals": {
-                "alpha_vantage": AlphaVantageClient.get_fundamentals,
-                "yfinance": YFinanceClient.get_fundamentals,
-                "china_stock": ChinaStockClient.get_fundamentals,
+                "yfinance": YFinanceClient.get_fundamentals if YFinanceClient else None,
+                "alpha_vantage": AlphaVantageClient.get_fundamentals if AlphaVantageClient else None,
+                "finnhub": FinnhubClient.get_fundamentals if FinnhubClient else None,
+                "tushare": TuShareClient.get_fundamentals if TuShareClient else None,
+                "china_stock": ChinaStockClient.get_fundamentals if ChinaStockClient else None,
             },
             "get_balance_sheet": {
-                "alpha_vantage": AlphaVantageClient.get_balance_sheet,
-                "yfinance": YFinanceClient.get_balance_sheet,
-                "china_stock": ChinaStockClient.get_balance_sheet,
+                "yfinance": YFinanceClient.get_balance_sheet if YFinanceClient else None,
+                "alpha_vantage": AlphaVantageClient.get_balance_sheet if AlphaVantageClient else None,
+                "finnhub": FinnhubClient.get_balance_sheet if FinnhubClient else None,
+                "tushare": TuShareClient.get_balance_sheet if TuShareClient else None,
+                "china_stock": ChinaStockClient.get_balance_sheet if ChinaStockClient else None,
             },
             "get_cashflow": {
-                "alpha_vantage": AlphaVantageClient.get_cashflow,
-                "yfinance": YFinanceClient.get_cashflow,
-                "china_stock": ChinaStockClient.get_cashflow,
+                "yfinance": YFinanceClient.get_cashflow if YFinanceClient else None,
+                "alpha_vantage": AlphaVantageClient.get_cashflow if AlphaVantageClient else None,
+                "finnhub": FinnhubClient.get_cashflow if FinnhubClient else None,
+                "tushare": TuShareClient.get_cashflow if TuShareClient else None,
+                "china_stock": ChinaStockClient.get_cashflow if ChinaStockClient else None,
             },
             "get_income_statement": {
-                "alpha_vantage": AlphaVantageClient.get_income_statement,
-                "yfinance": YFinanceClient.get_income_statement,
-                "china_stock": ChinaStockClient.get_income_statement,
+                "yfinance": YFinanceClient.get_income_statement if YFinanceClient else None,
+                "alpha_vantage": AlphaVantageClient.get_income_statement if AlphaVantageClient else None,
+                "finnhub": FinnhubClient.get_income_statement if FinnhubClient else None,
+                "tushare": TuShareClient.get_income_statement if TuShareClient else None,
+                "china_stock": ChinaStockClient.get_income_statement if ChinaStockClient else None,
             },
             # news_data
             "get_news": {
-                "alpha_vantage": AlphaVantageClient.get_news,
-                "yfinance": YFinanceClient.get_news,
-                "china_stock": ChinaStockClient.get_news,
+                "yfinance": YFinanceClient.get_news if YFinanceClient else None,
+                "alpha_vantage": AlphaVantageClient.get_news if AlphaVantageClient else None,
+                "finnhub": FinnhubClient.get_news if FinnhubClient else None,
+                "tushare": TuShareClient.get_news if TuShareClient else None,
+                "china_stock": ChinaStockClient.get_news if ChinaStockClient else None,
             },
             "get_global_news": {
-                "alpha_vantage": AlphaVantageClient.get_global_news,
-                "yfinance": YFinanceClient.get_global_news,
-                "china_stock": ChinaStockClient.get_global_news,
+                "yfinance": YFinanceClient.get_global_news if YFinanceClient else None,
+                "alpha_vantage": AlphaVantageClient.get_global_news if AlphaVantageClient else None,
+                "finnhub": FinnhubClient.get_global_news if FinnhubClient else None,
+                "tushare": TuShareClient.get_global_news if TuShareClient else None,
+                "china_stock": ChinaStockClient.get_global_news if ChinaStockClient else None,
             },
             "get_insider_transactions": {
-                "alpha_vantage": AlphaVantageClient.get_insider_transactions,
-                "yfinance": YFinanceClient.get_insider_transactions,
-                "china_stock": ChinaStockClient.get_insider_transactions,
+                "yfinance": YFinanceClient.get_insider_transactions if YFinanceClient else None,
+                "alpha_vantage": AlphaVantageClient.get_insider_transactions if AlphaVantageClient else None,
+                "finnhub": FinnhubClient.get_insider_transactions if FinnhubClient else None,
+                "tushare": TuShareClient.get_insider_transactions if TuShareClient else None,
+                "china_stock": ChinaStockClient.get_insider_transactions if ChinaStockClient else None,
             },
         }
     
