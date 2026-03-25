@@ -693,6 +693,29 @@ def _register_default_models():
             capabilities=["reasoning", "fast", "multilingual"],
             quality_tier="standard"
         ),
+        # =============================================
+        # MiniMax AI (via minimaxi.com)
+        # =============================================
+        ModelInfo(
+            name="minimax-m2.7-highspeed",
+            provider="minimax",
+            context_window=204800,
+            max_output=131072,
+            cost_per_1k_input=0,
+            cost_per_1k_output=0,
+            capabilities=["reasoning", "fast", "coding", "analysis"],
+            quality_tier="premium"
+        ),
+        ModelInfo(
+            name="minimax-m2.5-highspeed",
+            provider="minimax",
+            context_window=100000,
+            max_output=8192,
+            cost_per_1k_input=0,
+            cost_per_1k_output=0,
+            capabilities=["reasoning", "fast", "coding"],
+            quality_tier="standard"
+        ),
     ]
     
     for m in models:
