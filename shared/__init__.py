@@ -26,6 +26,15 @@ from .interfaces import (
     validate_analyst,
     validate_trader,
 )
+from .logging_config import (
+    setup_logging,
+    get_logger,
+    debug,
+    info,
+    warning,
+    error,
+    critical,
+)
 
 __all__ = [
     # JSON utilities
@@ -48,4 +57,12 @@ __all__ = [
     "BaseDataProvider",
     "validate_analyst",
     "validate_trader",
+    # Logging
+    "setup_logging",
+    "get_logger",
+    "debug",
+    "info",
+    "warning",
+    "error",
+    "critical",
 ]
