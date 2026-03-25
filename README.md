@@ -187,23 +187,79 @@ TradingAgents-OpenClaw/
 
 ## Configuration Points | 配置项说明
 
-### 1. LLM Configuration | LLM配置
+### 1. Multi-Model Configuration | 多模型配置
 
-Edit `shared/config.py` or set environment variables:
+The system supports **14 pre-registered models** from 4 providers:
+
+| Provider | Models |
+|----------|--------|
+| OpenAI | gpt-4o, gpt-4o-mini, gpt-4-turbo, o1-preview, o1-mini |
+| Anthropic | claude-opus-4.6, claude-sonnet-4.6, claude-3-5-sonnet, claude-3-5-haiku |
+| Google | gemini-2.0-flash-exp, gemini-1.5-flash, gemini-1.5-pro |
+| xAI | grok-2-1212, grok-2-vision-1212 |
+
+#### Task-Based Model Selection | 基于任务选择模型
 
 ```python
-# Model selection
-DEEP_THINK_LLM = {
-    "provider": "openai",      # or "anthropic"
-    "model": "gpt-4o",        # or "claude-opus-4.6"
-    "temperature": 0.7
-}
+from shared.models import ModelSelector, ModelRegistry
 
-QUICK_THINK_LLM = {
-    "provider": "openai",
-    "model": "gpt-4o-mini",
-    "temperature": 0.5
-}
+# Create selector with default mappings
+selector = ModelSelector()
+
+# Get model for specific task
+model_key = selector.get_model_for_task("fundamental_analysis")
+# → "openai/gpt-4o"
+
+model_key = selector.get_model_for_task("research_debate")
+# → "anthropic/claude-opus-4.6"
+
+# Override default model for a task
+selector.set_model("fundamental_analysis", "anthropic/claude-opus-4.6")
+
+# Get full LLMConfig for a task
+llm_config = selector.get_llm_config_for_task("technical_analysis")
+# → LLMConfig(provider="openai", model="gpt-4o-mini", ...)
+```
+
+#### Default Task Mappings | 默认任务映射
+
+| Task | Default Model |
+|------|---------------|
+| fundamental_analysis | openai/gpt-4o |
+| technical_analysis | openai/gpt-4o-mini |
+| sentiment_analysis | openai/gpt-4o-mini |
+| research_debate | anthropic/claude-opus-4.6 |
+| risk_assessment | anthropic/claude-sonnet-4.6 |
+| trading_decision | openai/gpt-4o |
+| summary | openai/gpt-4o-mini |
+
+#### Model Registry | 模型注册表
+
+```python
+# List all registered models
+models = ModelRegistry.list_models()
+
+# List models by provider
+openai_models = ModelRegistry.list_models(provider="openai")
+
+# Get model info
+model_info = ModelRegistry.get("openai", "gpt-4o")
+print(f"Context: {model_info.context_window} tokens")
+print(f"Cost: ${model_info.cost_per_1k_input}/1K input")
+
+# Find best model for task
+best = ModelRegistry.find_best(task="research", quality_tier="premium")
+```
+
+#### TAOConfig Multi-Model | TAOConfig 多模型配置
+
+```python
+from shared.models import TAOConfig
+
+config = TAOConfig(
+    deep_think_llm=LLMConfig(provider="anthropic", model="claude-opus-4.6"),
+    quick_think_llm=LLMConfig(provider="openai", model="gpt-4o-mini")
+)
 ```
 
 ### 2. Data Source Priority | 数据源优先级
