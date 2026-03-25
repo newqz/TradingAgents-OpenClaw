@@ -8,9 +8,14 @@ import json
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
+import sys
+PROJECT_ROOT = '/root/.openclaw/workspace/TradingAgents-OpenClaw'
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 from shared.models import (
     ResearchSummary, TradingSignal
 )
+from shared.json_utils import safe_json_parse
 
 
 RESEARCH_MANAGER_PROMPT = """You are a neutral research manager responsible for synthesizing conflicting viewpoints into a balanced investment recommendation.
@@ -110,11 +115,29 @@ class ResearchManager:
             response_format={"type": "json_object"}
         )
         
-        result = json.loads(response.choices[0].message.content)
+        # 安全解析JSON
+        response_text = response.choices[0].message.content
+        result = safe_json_parse(response_text, default=None)
+        
+        if result is None:
+            print(f"[{trace_id}] Failed to parse research manager response")
+            return ResearchSummary(
+                overall_signal=TradingSignal.HOLD,
+                consensus_level=0.5,
+                key_insights=["Research synthesis failed"],
+                contradictions=[],
+                reasoning="Error: JSON parse failed"
+            )
+        
+        # 安全处理signal枚举值
+        try:
+            signal = TradingSignal(result.get("overall_signal", "hold"))
+        except ValueError:
+            signal = TradingSignal.HOLD
         
         return ResearchSummary(
-            overall_signal=TradingSignal(result.get("overall_signal", "hold")),
-            consensus_level=result.get("consensus_level", 0.5),
+            overall_signal=signal,
+            consensus_level=max(0.0, min(1.0, result.get("consensus_level", 0.5))),
             key_insights=result.get("key_insights", []),
             contradictions=result.get("contradictions", []),
             confidence=result.get("confidence", 0.5),

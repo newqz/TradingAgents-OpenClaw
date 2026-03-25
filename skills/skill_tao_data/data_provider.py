@@ -42,34 +42,89 @@ VENDOR_LIST = ["yfinance", "alpha_vantage", "finnhub", "tushare", "china_stock",
 
 
 class CacheManager:
-    """简单的内存缓存管理器，生产环境可替换为 Redis"""
+    """
+    内存缓存管理器 (LRU策略)
     
-    def __init__(self, enabled: bool = True, ttl_minutes: int = 60):
+    Features:
+    - TTL过期机制
+    - LRU容量淘汰 (防止内存泄漏)
+    - 线程安全 (基础实现)
+    
+    生产环境建议替换为 Redis
+    """
+    
+    # 默认配置
+    DEFAULT_MAXSIZE = 10000  # 最大缓存条目数
+    DEFAULT_TTL_MINUTES = 60  # 默认TTL
+    
+    def __init__(self, enabled: bool = True, ttl_minutes: int = 60, maxsize: int = None):
         self.enabled = enabled
         self.ttl = timedelta(minutes=ttl_minutes)
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        self.maxsize = maxsize or self.DEFAULT_MAXSIZE
+        
+        # 使用OrderedDict实现LRU
+        from collections import OrderedDict
+        self._cache: OrderedDict = OrderedDict()
+        self._timestamps: Dict[str, datetime] = {}
     
     def _make_key(self, method: str, *args, **kwargs) -> str:
         """生成缓存键"""
-        key_data = f"{method}:{args}:{sorted(kwargs.items())}"
+        # 过滤不可哈希对象 (如DataFrame)
+        safe_args = []
+        for a in args:
+            try:
+                hash(a)
+                safe_args.append(a)
+            except TypeError:
+                safe_args.append(str(type(a).__name__))
+        
+        safe_kwargs = {}
+        for k, v in sorted(kwargs.items()):
+            try:
+                hash(v)
+                safe_kwargs[k] = v
+            except TypeError:
+                safe_kwargs[k] = str(type(v).__name__)
+        
+        key_data = f"{method}:{safe_args}:{safe_kwargs}"
         return hashlib.md5(key_data.encode()).hexdigest()
     
+    def _evict_if_needed(self):
+        """如果缓存满，执行LRU淘汰"""
+        if len(self._cache) >= self.maxsize:
+            # 删除最旧的条目 (OrderedDict.popitem(last=False) 删除第一个)
+            oldest_key = next(iter(self._cache))
+            del self._cache[oldest_key]
+            if oldest_key in self._timestamps:
+                del self._timestamps[oldest_key]
+    
+    def _is_expired(self, key: str) -> bool:
+        """检查缓存是否过期"""
+        if key not in self._timestamps:
+            return True
+        return datetime.now() - self._timestamps[key] >= self.ttl
+    
     def get(self, method: str, *args, **kwargs) -> Optional[Any]:
-        """获取缓存数据"""
+        """获取缓存数据 (同时更新LRU顺序)"""
         if not self.enabled:
             return None
         
         key = self._make_key(method, *args, **kwargs)
-        cached = self._cache.get(key)
         
-        if cached:
-            if datetime.now() - cached["timestamp"] < self.ttl:
-                return cached["data"]
-            else:
-                # 过期清理
-                del self._cache[key]
+        if key not in self._cache:
+            return None
         
-        return None
+        # 检查过期
+        if self._is_expired(key):
+            del self._cache[key]
+            if key in self._timestamps:
+                del self._timestamps[key]
+            return None
+        
+        # 移动到末尾 (更新LRU顺序)
+        self._cache.move_to_end(key)
+        
+        return self._cache[key]
     
     def set(self, method: str, data: Any, *args, **kwargs):
         """设置缓存数据"""
@@ -77,14 +132,30 @@ class CacheManager:
             return
         
         key = self._make_key(method, *args, **kwargs)
-        self._cache[key] = {
-            "data": data,
-            "timestamp": datetime.now()
-        }
+        
+        # 如果已存在，更新并移动到末尾
+        if key in self._cache:
+            self._cache.move_to_end(key)
+        else:
+            # 执行LRU淘汰
+            self._evict_if_needed()
+        
+        self._cache[key] = data
+        self._timestamps[key] = datetime.now()
     
     def clear(self):
         """清空缓存"""
         self._cache.clear()
+        self._timestamps.clear()
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """获取缓存统计信息"""
+        return {
+            "size": len(self._cache),
+            "maxsize": self.maxsize,
+            "ttl_minutes": self.ttl.total_seconds() / 60,
+            "enabled": self.enabled
+        }
 
 
 class SymbolClassifier:

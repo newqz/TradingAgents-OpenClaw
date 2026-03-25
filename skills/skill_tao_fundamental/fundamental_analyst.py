@@ -16,6 +16,7 @@ from shared.models import (
     AnalystInput, AnalystOutput, AnalystReport,
     TradingSignal, AgentType, TokenUsage
 )
+from shared.json_utils import safe_json_parse
 
 # 懒加载数据层提供器
 _data_provider_getter = None
@@ -198,14 +199,36 @@ class FundamentalAnalyst:
             )
             
             analysis_text = response.choices[0].message.content
-            analysis_json = json.loads(analysis_text)
+            # 安全解析JSON，支持验证必填字段
+            analysis_json = safe_json_parse(
+                analysis_text,
+                default=None,
+                validate_keys=["signal", "confidence", "reasoning"]
+            )
             
-            # 4. 构建报告
+            # 如果解析失败，返回错误
+            if analysis_json is None:
+                print(f"[{input_data.trace_id}] Failed to parse LLM response as JSON: {analysis_text[:200]}...")
+                return AnalystOutput(
+                    trace_id=input_data.trace_id,
+                    success=False,
+                    error=f"Failed to parse LLM response: JSON format error",
+                    latency_ms=int((time.time() - start_time) * 1000)
+                )
+            
+            # 4. 构建报告 (安全处理signal枚举值)
+            try:
+                signal_value = analysis_json.get("signal", "hold")
+                signal = TradingSignal(signal_value)
+            except ValueError:
+                print(f"[{input_data.trace_id}] Invalid signal '{signal_value}', defaulting to HOLD")
+                signal = TradingSignal.HOLD
+            
             report = AnalystReport(
                 agent_type=AgentType.FUNDAMENTAL,
                 stock_symbol=symbol,
-                signal=TradingSignal(analysis_json.get("signal", "hold")),
-                confidence=analysis_json.get("confidence", 0.5),
+                signal=signal,
+                confidence=max(0.0, min(1.0, analysis_json.get("confidence", 0.5))),  # clamp 0-1
                 reasoning=analysis_json.get("reasoning", ""),
                 key_metrics=analysis_json.get("key_metrics", {}),
                 risks=analysis_json.get("risks", []),

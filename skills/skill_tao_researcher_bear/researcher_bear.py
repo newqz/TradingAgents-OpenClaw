@@ -9,10 +9,13 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime
 
 import sys
-sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw')
+PROJECT_ROOT = '/root/.openclaw/workspace/TradingAgents-OpenClaw'
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 from shared.models import (
     AnalystReport, AgentType, TradingSignal
 )
+from shared.json_utils import safe_json_parse
 
 
 BEAR_RESEARCHER_PROMPT = """You are a bearish researcher with expertise in risk assessment and value preservation.
@@ -113,7 +116,21 @@ class BearResearcher:
             response_format={"type": "json_object"}
         )
         
-        result = json.loads(response.choices[0].message.content)
+        # 安全解析JSON
+        response_text = response.choices[0].message.content
+        result = safe_json_parse(response_text, default=None)
+        
+        if result is None:
+            print(f"[{trace_id}] Failed to parse bear researcher response")
+            return {
+                "trace_id": trace_id,
+                "round": round_num,
+                "bull_points": [],
+                "bear_points": [],
+                "overall_sentiment": "neutral",
+                "error": "JSON parse error"
+            }
+        
         result["trace_id"] = trace_id
         result["round"] = round_num
         

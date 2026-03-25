@@ -9,11 +9,14 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime
 
 import sys
-sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw')
+PROJECT_ROOT = '/root/.openclaw/workspace/TradingAgents-OpenClaw'
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 from shared.models import (
     RiskAssessment, RiskLevel, RiskFactor,
     ResearchSummary, TraderRecommendation
 )
+from shared.json_utils import safe_json_parse
 
 
 RISK_MANAGER_PROMPT = """You are a professional risk manager responsible for assessing portfolio and position risks.
@@ -118,21 +121,43 @@ class RiskManager:
             response_format={"type": "json_object"}
         )
         
-        result = json.loads(response.choices[0].message.content)
+        # 安全解析JSON
+        response_text = response.choices[0].message.content
+        result = safe_json_parse(response_text, default=None)
         
-        # 构建 RiskFactor 列表
+        if result is None:
+            print(f"[{trace_id}] Failed to parse risk manager response")
+            return RiskAssessment(
+                overall_risk=RiskLevel.MEDIUM,
+                risk_score=50,
+                risk_factors=[],
+                max_position_pct=0.20,
+                recommendations=["Risk assessment failed"]
+            )
+        
+        # 构建 RiskFactor 列表 (安全处理枚举值)
         risk_factors = []
         for rf in result.get("risk_factors", []):
+            try:
+                level = RiskLevel(rf.get("level", "medium"))
+            except ValueError:
+                level = RiskLevel.MEDIUM
             risk_factors.append(RiskFactor(
                 factor_name=rf.get("factor_name", ""),
-                level=RiskLevel(rf.get("level", "medium")),
+                level=level,
                 description=rf.get("description", ""),
                 mitigation=rf.get("mitigation", "")
             ))
         
+        # 安全处理overall_risk枚举值
+        try:
+            overall_risk = RiskLevel(result.get("overall_risk", "medium"))
+        except ValueError:
+            overall_risk = RiskLevel.MEDIUM
+        
         return RiskAssessment(
-            overall_risk=RiskLevel(result.get("overall_risk", "medium")),
-            risk_score=result.get("risk_score", 50),
+            overall_risk=overall_risk,
+            risk_score=max(0, min(100, result.get("risk_score", 50))),
             risk_factors=risk_factors,
             position_size_recommendation=result.get("recommendations", ["medium"])[0],
             max_position_pct=result.get("max_position_pct", 10),

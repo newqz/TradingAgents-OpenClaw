@@ -5,10 +5,15 @@ Bull / Neutral / Bear
 
 import os
 import json
+import sys
 from typing import Any, Dict, Optional
 from abc import ABC, abstractmethod
 
+PROJECT_ROOT = '/root/.openclaw/workspace/TradingAgents-OpenClaw'
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 from shared.models import TraderRecommendation, TradingAction, ResearchSummary
+from shared.json_utils import safe_json_parse
 
 
 TRADER_BASE_PROMPT = """You are a professional trader with expertise in position sizing and risk management.
@@ -73,15 +78,35 @@ class BaseTrader(ABC):
             response_format={"type": "json_object"}
         )
         
-        result = json.loads(response.choices[0].message.content)
+        # 安全解析JSON
+        response_text = response.choices[0].message.content
+        result = safe_json_parse(response_text, default=None)
+        
+        if result is None:
+            print(f"[{trace_id}] Failed to parse trader response from {self._get_agent_type()}")
+            return TraderRecommendation(
+                trader_type=self._get_agent_type(),
+                action=TradingAction.HOLD,
+                target_price=None,
+                stop_loss=None,
+                position_size="medium",
+                confidence=0.5,
+                reasoning="Error: JSON parse failed"
+            )
+        
+        # 安全处理action枚举值
+        try:
+            action = TradingAction(result.get("action", "hold"))
+        except ValueError:
+            action = TradingAction.HOLD
         
         return TraderRecommendation(
             trader_type=self._get_agent_type(),
-            action=TradingAction(result.get("action", "hold")),
+            action=action,
             target_price=result.get("target_price"),
             stop_loss=result.get("stop_loss"),
             position_size=result.get("position_size", "medium"),
-            confidence=result.get("confidence", 0.5),
+            confidence=max(0.0, min(1.0, result.get("confidence", 0.5))),
             reasoning=result.get("reasoning", "")
         )
     
