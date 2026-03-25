@@ -19,10 +19,20 @@ class ChinaStockClient:
     
     def __init__(self):
         self.name = "china_stock"
+        self.ak = None
+        self._available = False
+        
         try:
             import akshare as ak
             self.ak = ak
+            self._available = True
         except ImportError:
+            # 不在初始化时抛出错误，留到实际调用时再检查
+            pass
+    
+    def _ensure_available(self):
+        """确保 akshare 可用"""
+        if not self._available:
             raise ImportError(
                 "akshare is required for China stock data. "
                 "Install with: pip install akshare"
@@ -83,6 +93,8 @@ class ChinaStockClient:
         start: Optional[str] = None,
         end: Optional[str] = None
     ) -> Dict[str, Any]:
+        """获取股票历史数据"""
+        self._ensure_available()
         """
         获取股票历史价格数据
         """
@@ -168,9 +180,8 @@ class ChinaStockClient:
         }
     
     def get_fundamentals(self, symbol: str) -> Dict[str, Any]:
-        """
-        获取公司基本面数据
-        """
+        """获取公司基本面数据"""
+        self._ensure_available()
         parsed = self._parse_symbol(symbol)
         code = parsed["code"]
         stock_type = parsed["type"]
@@ -247,6 +258,7 @@ class ChinaStockClient:
         freq: str = "quarterly"
     ) -> Dict[str, Any]:
         """获取资产负债表"""
+        self._ensure_available()
         parsed = self._parse_symbol(symbol)
         code = parsed["code"]
         stock_type = parsed["type"]
@@ -276,6 +288,7 @@ class ChinaStockClient:
         freq: str = "quarterly"
     ) -> Dict[str, Any]:
         """获取利润表"""
+        self._ensure_available()
         parsed = self._parse_symbol(symbol)
         code = parsed["code"]
         stock_type = parsed["type"]
@@ -305,6 +318,7 @@ class ChinaStockClient:
         freq: str = "quarterly"
     ) -> Dict[str, Any]:
         """获取现金流量表"""
+        self._ensure_available()
         parsed = self._parse_symbol(symbol)
         code = parsed["code"]
         stock_type = parsed["type"]
@@ -335,9 +349,8 @@ class ChinaStockClient:
         period: str = "6mo",
         **kwargs
     ) -> Dict[str, Any]:
-        """
-        计算技术指标
-        """
+        """计算技术指标"""
+        self._ensure_available()
         import pandas as pd
         
         # 获取价格数据
@@ -454,6 +467,7 @@ class ChinaStockClient:
         limit: int = 10
     ) -> Dict[str, Any]:
         """获取新闻数据"""
+        self._ensure_available()
         parsed = self._parse_symbol(symbol)
         code = parsed["code"]
         
@@ -497,6 +511,7 @@ class ChinaStockClient:
     
     def get_global_news(self, limit: int = 20) -> Dict[str, Any]:
         """获取财经要闻"""
+        self._ensure_available()
         try:
             # 获取东方财富财经要闻
             news_df = self.ak.stock_zh_a_spot_em()
@@ -518,6 +533,7 @@ class ChinaStockClient:
     
     def get_insider_transactions(self, symbol: str) -> Dict[str, Any]:
         """获取内部人交易数据"""
+        self._ensure_available()
         parsed = self._parse_symbol(symbol)
         code = parsed["code"]
         

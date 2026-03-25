@@ -126,9 +126,13 @@ class SymbolClassifier:
         """获取推荐的数据供应商"""
         stock_type = SymbolClassifier.classify(symbol)
         
+        # 根据股票类型选择供应商优先级
+        # US stocks: yfinance → alpha_vantage → finnhub
+        # A-shares: tushare → china_stock (akshare)
+        # HK stocks: china_stock
         vendor_map = {
             "us_stock": "yfinance",
-            "a_stock": "china_stock",
+            "a_stock": "tushare",      # TuShare 优先 (更专业的A股数据)
             "hk_stock": "china_stock"
         }
         

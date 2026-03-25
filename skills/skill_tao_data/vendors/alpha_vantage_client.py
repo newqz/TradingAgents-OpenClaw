@@ -4,6 +4,7 @@ Alpha Vantage 数据客户端
 需要 API Key: https://www.alphavantage.co/support/#api-key
 """
 
+import os
 from typing import Any, Dict, List, Optional
 
 
@@ -12,13 +13,12 @@ class AlphaVantageClient:
     
     def __init__(self, api_key: Optional[str] = None):
         self.name = "alpha_vantage"
-        self.api_key = api_key
+        self.api_key = api_key or os.getenv("ALPHA_VANTAGE_API_KEY")
+        self._initialized = False
         
         if not self.api_key:
-            raise ValueError(
-                "Alpha Vantage API key is required. "
-                "Get one free at: https://www.alphavantage.co/support/#api-key"
-            )
+            # 不在初始化时抛出错误，留到实际调用时再检查
+            return
         
         try:
             from alpha_vantage.timeseries import TimeSeries
@@ -28,10 +28,19 @@ class AlphaVantageClient:
             self.TimeSeries = TimeSeries
             self.FundamentalData = FundamentalData
             self.TechIndicators = TechIndicators
+            self._initialized = True
             
         except ImportError:
             raise ImportError(
                 "alpha_vantage is required. Install with: pip install alpha-vantage"
+            )
+    
+    def _ensure_api_key(self):
+        """确保 API key 已设置"""
+        if not self.api_key:
+            raise ValueError(
+                "Alpha Vantage API key is required. "
+                "Get one free at: https://www.alphavantage.co/support/#api-key"
             )
     
     def _handle_rate_limit(self):
@@ -48,9 +57,8 @@ class AlphaVantageClient:
         start: Optional[str] = None,
         end: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        获取股票历史价格数据
-        """
+        """获取股票历史价格数据"""
+        self._ensure_api_key()
         self._handle_rate_limit()
         
         ts = self.TimeSeries(key=self.api_key, output_format='pandas')
@@ -92,6 +100,7 @@ class AlphaVantageClient:
     
     def get_fundamentals(self, symbol: str) -> Dict[str, Any]:
         """获取公司基本面数据"""
+        self._ensure_api_key()
         self._handle_rate_limit()
         
         fd = self.FundamentalData(key=self.api_key, output_format='pandas')
@@ -146,6 +155,7 @@ class AlphaVantageClient:
         freq: str = "quarterly"
     ) -> Dict[str, Any]:
         """获取资产负债表"""
+        self._ensure_api_key()
         self._handle_rate_limit()
         
         fd = self.FundamentalData(key=self.api_key, output_format='pandas')
@@ -171,6 +181,7 @@ class AlphaVantageClient:
         freq: str = "quarterly"
     ) -> Dict[str, Any]:
         """获取利润表"""
+        self._ensure_api_key()
         self._handle_rate_limit()
         
         fd = self.FundamentalData(key=self.api_key, output_format='pandas')
@@ -196,6 +207,7 @@ class AlphaVantageClient:
         freq: str = "quarterly"
     ) -> Dict[str, Any]:
         """获取现金流量表"""
+        self._ensure_api_key()
         self._handle_rate_limit()
         
         fd = self.FundamentalData(key=self.api_key, output_format='pandas')
@@ -222,8 +234,10 @@ class AlphaVantageClient:
         period: str = "6mo",
         **kwargs
     ) -> Dict[str, Any]:
+        """获取技术指标"""
+        self._ensure_api_key()
+        
         """
-        获取技术指标
         Alpha Vantage 提供丰富的技术指标
         """
         self._handle_rate_limit()
