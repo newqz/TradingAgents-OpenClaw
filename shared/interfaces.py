@@ -7,7 +7,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
-from shared.models import (
+from .models import (
     AnalystInput, AnalystOutput, 
     ResearchSummary, RiskAssessment,
     TraderRecommendation, TradingAction,

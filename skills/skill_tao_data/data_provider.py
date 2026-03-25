@@ -8,6 +8,7 @@ import os
 import json
 import hashlib
 import re
+import threading
 from typing import Any, Dict, List, Optional, Union
 from datetime import datetime, timedelta
 from functools import wraps
@@ -66,6 +67,9 @@ class CacheManager:
         from collections import OrderedDict
         self._cache: OrderedDict = OrderedDict()
         self._timestamps: Dict[str, datetime] = {}
+        
+        # 线程安全锁
+        self._lock = threading.RLock()
     
     def _make_key(self, method: str, *args, **kwargs) -> str:
         """生成缓存键"""
@@ -98,6 +102,12 @@ class CacheManager:
             if oldest_key in self._timestamps:
                 del self._timestamps[oldest_key]
     
+    def clear(self):
+        """清空缓存 (线程安全)"""
+        with self._lock:
+            self._cache.clear()
+            self._timestamps.clear()
+    
     def _is_expired(self, key: str) -> bool:
         """检查缓存是否过期"""
         if key not in self._timestamps:
@@ -105,43 +115,45 @@ class CacheManager:
         return datetime.now() - self._timestamps[key] >= self.ttl
     
     def get(self, method: str, *args, **kwargs) -> Optional[Any]:
-        """获取缓存数据 (同时更新LRU顺序)"""
+        """获取缓存数据 (同时更新LRU顺序，线程安全)"""
         if not self.enabled:
             return None
         
         key = self._make_key(method, *args, **kwargs)
         
-        if key not in self._cache:
-            return None
-        
-        # 检查过期
-        if self._is_expired(key):
-            del self._cache[key]
-            if key in self._timestamps:
-                del self._timestamps[key]
-            return None
-        
-        # 移动到末尾 (更新LRU顺序)
-        self._cache.move_to_end(key)
-        
-        return self._cache[key]
+        with self._lock:
+            if key not in self._cache:
+                return None
+            
+            # 检查过期
+            if self._is_expired(key):
+                del self._cache[key]
+                if key in self._timestamps:
+                    del self._timestamps[key]
+                return None
+            
+            # 移动到末尾 (更新LRU顺序)
+            self._cache.move_to_end(key)
+            
+            return self._cache[key]
     
     def set(self, method: str, data: Any, *args, **kwargs):
-        """设置缓存数据"""
+        """设置缓存数据 (线程安全)"""
         if not self.enabled:
             return
         
         key = self._make_key(method, *args, **kwargs)
         
-        # 如果已存在，更新并移动到末尾
-        if key in self._cache:
-            self._cache.move_to_end(key)
-        else:
-            # 执行LRU淘汰
-            self._evict_if_needed()
-        
-        self._cache[key] = data
-        self._timestamps[key] = datetime.now()
+        with self._lock:
+            # 如果已存在，更新并移动到末尾
+            if key in self._cache:
+                self._cache.move_to_end(key)
+            else:
+                # 执行LRU淘汰
+                self._evict_if_needed()
+            
+            self._cache[key] = data
+            self._timestamps[key] = datetime.now()
     
     def clear(self):
         """清空缓存"""

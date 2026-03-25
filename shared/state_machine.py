@@ -7,7 +7,7 @@
 from typing import Dict, Set, Optional, Callable
 from functools import wraps
 
-from shared.models import AnalysisStatus
+from .models import AnalysisStatus
 
 
 class StateTransitionError(Exception):

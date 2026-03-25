@@ -6,8 +6,11 @@ JSON解析工具模块
 
 import json
 import re
-from typing import Any, Dict, Optional, Type, TypeVar
-from functools import wraps
+import logging
+from typing import Any, Dict, Optional, TypeVar
+
+# 使用标准 logging 模块避免循环导入
+logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 
@@ -49,14 +52,14 @@ def safe_json_parse(
             if validate_keys:
                 missing = [k for k in validate_keys if k not in result]
                 if missing:
-                    print(f"[WARN] JSON missing required keys: {missing}")
+                    logger.warning("JSON missing required keys: %s", missing)
                     return default
             return result
         else:
-            print(f"[WARN] JSON parsed but not a dict: {type(result)}")
+            logger.warning("JSON parsed but not a dict: %s", type(result))
             return default
     except json.JSONDecodeError as e:
-        print(f"[WARN] JSON decode error: {e}")
+        logger.warning("JSON decode error: %s", e)
         
         # 尝试提取JSON块 (处理 ```json ... ``` 格式)
         json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', text)
@@ -66,7 +69,7 @@ def safe_json_parse(
                 if validate_keys:
                     missing = [k for k in validate_keys if k not in result]
                     if missing:
-                        print(f"[WARN] Extracted JSON missing keys: {missing}")
+                        logger.warning("Extracted JSON missing keys: %s", missing)
                         return default
                 return result
             except json.JSONDecodeError:
@@ -80,13 +83,13 @@ def safe_json_parse(
                 if validate_keys:
                     missing = [k for k in validate_keys if k not in result]
                     if missing:
-                        print(f"[WARN] Extracted JSON missing keys: {missing}")
+                        logger.warning("Extracted JSON missing keys: %s", missing)
                         return default
                 return result
             except json.JSONDecodeError:
                 pass
         
-        print(f"[WARN] All JSON extraction attempts failed")
+        logger.warning("All JSON extraction attempts failed")
         return default
 
 
@@ -116,7 +119,8 @@ def parse_with_validation(
             value = result[key]
             # 类型检查 (允许None)
             if value is not None and not isinstance(value, expected_type):
-                print(f"[WARN] Type mismatch for '{key}': expected {expected_type}, got {type(value)}")
+                logger.warning("Type mismatch for '%s': expected %s, got %s",
+                             key, expected_type, type(value))
                 # 尝试类型转换
                 if expected_type == str:
                     value = str(value)
