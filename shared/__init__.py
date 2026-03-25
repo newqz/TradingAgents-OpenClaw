@@ -17,6 +17,15 @@ from .state_machine import (
     validate,
     get_next_states,
 )
+from .interfaces import (
+    BaseAnalyst,
+    BaseResearcher,
+    BaseTrader,
+    BaseRiskManager,
+    BaseDataProvider,
+    validate_analyst,
+    validate_trader,
+)
 
 __all__ = [
     # JSON utilities
@@ -31,4 +40,12 @@ __all__ = [
     "validate_state_transition",
     "validate",
     "get_next_states",
+    # Interfaces
+    "BaseAnalyst",
+    "BaseResearcher",
+    "BaseTrader",
+    "BaseRiskManager",
+    "BaseDataProvider",
+    "validate_analyst",
+    "validate_trader",
 ]

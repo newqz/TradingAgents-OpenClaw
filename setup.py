@@ -39,7 +39,7 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         # Core dependencies
-        "pydantic>=1.10.0",
+        "pydantic>=1.9.0,<2.0.0",  # Pydantic 1.x supports Python 3.6
         "yfinance>=0.2.0",
         "requests>=2.28.0",
         "pandas>=1.5.0",
