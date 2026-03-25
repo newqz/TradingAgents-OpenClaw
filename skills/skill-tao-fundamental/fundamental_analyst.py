@@ -1,24 +1,42 @@
 """
 基本面分析师 Skill
 分析公司财务数据，生成基本面投资报告
+
+入口点应先调用:
+  from bootstrap import setup; setup()
 """
 
 import os
 import json
+import importlib
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
-# 导入共享模型
-import sys
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw')
 from shared.models import (
     AnalystInput, AnalystOutput, AnalystReport,
     TradingSignal, AgentType, TokenUsage
 )
 
-# 导入数据层
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/skills/skill-tao-data')
-from skill_tao_data import get_data_provider
+# 动态导入数据层 (避免 Python 3.6 的路径问题)
+def _import_data_provider():
+    """动态导入数据层模块"""
+    try:
+        from skill_tao_data import get_data_provider
+        return get_data_provider
+    except ImportError:
+        # 尝试使用 importlib
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "data_provider",
+            os.path.join(os.path.dirname(__file__), "..", "skill_tao_data", "data_provider.py")
+        )
+        if spec and spec.loader:
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module.get_data_provider
+    raise ImportError("Could not import data_provider")
+
+get_data_provider = _import_data_provider()
 
 
 # 基本面分析系统提示词

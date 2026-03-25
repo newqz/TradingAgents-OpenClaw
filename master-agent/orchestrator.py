@@ -5,11 +5,14 @@ TradingOrchestrator - Master Agent 核心编排逻辑
 
 import asyncio
 import uuid
+import os
 import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw')
+# 使用共享配置模块设置路径
+from shared import config
+config.setup_paths()
 
 from shared.models import (
     AnalysisState,
@@ -23,9 +26,6 @@ from shared.models import (
 from master_agent.feishu_adapter import FeishuAdapter
 
 # 导入 Analysts
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/skills/skill-tao-fundamental')
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/skills/skill-tao-technical')
-
 from skill_tao_fundamental.fundamental_analyst import FundamentalAnalyst
 from skill_tao_technical.technical_analyst import TechnicalAnalyst
 

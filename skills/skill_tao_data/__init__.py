@@ -1,5 +1,5 @@
 """
-skill-tao-data: TradingAgents-OpenClaw 数据层
+skill_tao_data: TradingAgents-OpenClaw 数据层
 
 提供统一的股票数据获取接口，支持多供应商自动故障转移。
 

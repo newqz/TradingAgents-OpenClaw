@@ -9,7 +9,10 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime
 
 import sys
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw')
+
+# 使用共享配置模块设置路径
+from shared import config
+config.setup_paths()
 
 from shared.models import (
     AnalysisState,

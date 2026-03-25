@@ -8,14 +8,12 @@ import json
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
-import sys
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw')
 from shared.models import (
     AnalystInput, AnalystOutput, AnalystReport,
     TradingSignal, AgentType, TokenUsage
 )
 
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/skills/skill-tao-data')
+# 导入数据层 (bootstrap 会设置路径)
 from skill_tao_data import get_data_provider
 
 
