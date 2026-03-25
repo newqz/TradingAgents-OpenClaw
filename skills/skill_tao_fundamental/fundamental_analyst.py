@@ -17,14 +17,13 @@ from shared.models import (
     TradingSignal, AgentType, TokenUsage
 )
 
-# 动态导入数据层 (避免 Python 3.6 的路径问题)
-def _import_data_provider():
-    """动态导入数据层模块"""
-    try:
-        from skill_tao_data import get_data_provider
-        return get_data_provider
-    except ImportError:
-        # 尝试使用 importlib
+# 懒加载数据层提供器
+_data_provider_getter = None
+
+def _get_data_provider_getter():
+    """懒加载获取数据层提供器"""
+    global _data_provider_getter
+    if _data_provider_getter is None:
         import importlib.util
         spec = importlib.util.spec_from_file_location(
             "data_provider",
@@ -33,10 +32,8 @@ def _import_data_provider():
         if spec and spec.loader:
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            return module.get_data_provider
-    raise ImportError("Could not import data_provider")
-
-get_data_provider = _import_data_provider()
+            _data_provider_getter = module.get_data_provider
+    return _data_provider_getter
 
 
 # 基本面分析系统提示词
@@ -103,7 +100,7 @@ class FundamentalAnalyst:
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or {}
-        self.data_provider = get_data_provider()
+        self.data_provider = _get_data_provider_getter()()
         self.llm_client = self._init_llm_client()
     
     def _init_llm_client(self):

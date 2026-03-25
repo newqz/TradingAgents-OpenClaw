@@ -5,7 +5,7 @@ Phase 2 完成测试
 """
 
 import sys
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw')
+sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw')
 
 print("=" * 70)
 print("TradingAgents-OpenClaw Phase 1.5 + Phase 2 完成测试")
@@ -25,7 +25,7 @@ print("-" * 70)
 import os
 all_exist = True
 for skill_dir, filename in skills_to_check:
-    path = f"/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/skills/{skill_dir}/{filename}"
+    path = f"/root/.openclaw/workspace/TradingAgents-OpenClaw/skills/{skill_dir}/{filename}"
     if os.path.exists(path):
         size = os.path.getsize(path)
         print(f"✅ {skill_dir}/{filename} ({size} bytes)")

@@ -5,7 +5,7 @@ TradingAgents-OpenClaw 最终版测试
 """
 
 import sys
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw')
+sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw')
 
 print("=" * 70)
 print("TradingAgents-OpenClaw 完整版测试 (Phase 1-3)")
@@ -35,7 +35,7 @@ all_files = {
 
 total_size = 0
 for name, path in all_files.items():
-    full_path = f"/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/{path}"
+    full_path = f"/root/.openclaw/workspace/TradingAgents-OpenClaw/{path}"
     if os.path.exists(full_path):
         size = os.path.getsize(full_path)
         total_size += size

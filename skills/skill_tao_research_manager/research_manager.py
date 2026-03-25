@@ -8,8 +8,6 @@ import json
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
-import sys
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw')
 from shared.models import (
     ResearchSummary, TradingSignal
 )

@@ -29,16 +29,18 @@ from shared.models import (
     RiskAssessment,
 )
 
-# 导入所有 Skills
-from fundamental_analyst import FundamentalAnalyst
-from technical_analyst import TechnicalAnalyst
-from sentiment_analyst import SentimentAnalyst
-from researcher_bull import BullResearcher
-from researcher_bear import BearResearcher
-from research_manager import ResearchManager
+# 使用 skill_importer 动态导入 (解决 Python 3.6 的模块导入问题)
+from shared.skill_importer import import_skill_class
+
+# 导入 feishu_adapter, trader_debate_orchestrator, portfolio_manager (在同一目录)
 from feishu_adapter import FeishuAdapter
 from trader_debate_orchestrator import TraderDebateOrchestrator
 from portfolio_manager import PortfolioManager
+
+
+def _load_skill_class(skill_key: str):
+    """动态加载 skill 类"""
+    return import_skill_class(skill_key)
 
 
 class TradingOrchestrator:
@@ -55,12 +57,20 @@ class TradingOrchestrator:
             "temperature": 0.7
         }
         
-        # 初始化 Phase 1: 三位分析师
+        # 初始化 Phase 1: 三位分析师 (动态加载)
+        FundamentalAnalyst = _load_skill_class('fundamental_analyst')
+        TechnicalAnalyst = _load_skill_class('technical_analyst')
+        SentimentAnalyst = _load_skill_class('sentiment_analyst')
+        
         self.fundamental_analyst = FundamentalAnalyst(config=analyst_config)
         self.technical_analyst = TechnicalAnalyst(config=analyst_config)
         self.sentiment_analyst = SentimentAnalyst(config=analyst_config)
         
-        # 初始化 Phase 2: 研究员辩论
+        # 初始化 Phase 2: 研究员辩论 (动态加载)
+        BullResearcher = _load_skill_class('researcher_bull')
+        BearResearcher = _load_skill_class('researcher_bear')
+        ResearchManager = _load_skill_class('research_manager')
+        
         self.bull_researcher = BullResearcher(config=analyst_config)
         self.bear_researcher = BearResearcher(config=analyst_config)
         self.research_manager = ResearchManager(config=analyst_config)

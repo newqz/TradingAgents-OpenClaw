@@ -5,6 +5,7 @@
 
 import os
 import json
+import importlib
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
@@ -13,8 +14,23 @@ from shared.models import (
     TradingSignal, AgentType, TokenUsage
 )
 
-# 导入数据层 (bootstrap 会设置路径)
-from skill_tao_data import get_data_provider
+# 懒加载数据层提供器
+_data_provider_getter = None
+
+def _get_data_provider_getter():
+    """懒加载获取数据层提供器"""
+    global _data_provider_getter
+    if _data_provider_getter is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "data_provider",
+            os.path.join(os.path.dirname(__file__), "..", "skill_tao_data", "data_provider.py")
+        )
+        if spec and spec.loader:
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            _data_provider_getter = module.get_data_provider
+    return _data_provider_getter
 
 
 SENTIMENT_ANALYST_PROMPT = """You are a professional sentiment analyst specializing in market psychology and news impact assessment.
@@ -82,7 +98,7 @@ class SentimentAnalyst:
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or {}
-        self.data_provider = get_data_provider()
+        self.data_provider = _get_data_provider_getter()()
         self.llm_client = self._init_llm_client()
     
     def _init_llm_client(self):

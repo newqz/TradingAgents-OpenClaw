@@ -9,7 +9,7 @@ import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw')
+sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw')
 
 from shared.models import (
     AnalysisState, AnalysisStatus, FeishuCommand, TAOConfig,
@@ -17,13 +17,13 @@ from shared.models import (
 )
 
 # 导入 Skills
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/skills/skill-tao-fundamental')
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/skills/skill-tao-technical')
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/skills/skill-tao-sentiment')
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/skills/skill-tao-researcher-bull')
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/skills/skill-tao-researcher-bear')
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/skills/skill-tao-research-manager')
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/master-agent')
+sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw/skills/skill-tao-fundamental')
+sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw/skills/skill-tao-technical')
+sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw/skills/skill-tao-sentiment')
+sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw/skills/skill-tao-researcher-bull')
+sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw/skills/skill-tao-researcher-bear')
+sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw/skills/skill-tao-research-manager')
+sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw/master-agent')
 
 from fundamental_analyst import FundamentalAnalyst
 from technical_analyst import TechnicalAnalyst

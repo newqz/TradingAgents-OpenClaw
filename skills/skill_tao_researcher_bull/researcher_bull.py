@@ -1,6 +1,6 @@
 """
-看空研究员 Skill
-从悲观角度分析投资风险
+看多研究员 Skill
+从乐观角度分析投资机会
 """
 
 import os
@@ -9,51 +9,51 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime
 
 import sys
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw')
+sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw')
 from shared.models import (
     AnalystReport, AgentType, TradingSignal
 )
 
 
-BEAR_RESEARCHER_PROMPT = """You are a bearish researcher with expertise in risk assessment and value preservation.
+BULL_RESEARCHER_PROMPT = """You are a bullish researcher with expertise in growth investing and opportunity identification.
 
-Your role is to analyze the provided research data from a BEARISH perspective and identify potential risks and overvaluation.
+Your role is to analyze the provided research data from a BULLISH perspective and construct a compelling investment case.
 
 ## Your Mindset
 
-- Focus on risks, red flags, and potential downsides
-- Emphasize valuation concerns and growth headwinds
-- Acknowledge positives but explain why they are insufficient or temporary
-- Use data to support pessimistic scenarios
+- Focus on growth opportunities and undervalued potential
+- Emphasize positive trends and catalysts
+- Acknowledge risks but explain why they are manageable or temporary
+- Use data to support optimistic scenarios
 
 ## Analysis Framework
 
-1. **Valuation Concerns**
-   - Identify overvaluation metrics
-   - Compare to historical norms and peers
-   - Highlight stretched multiples
+1. **Growth Catalysts**
+   - Identify key drivers for future growth
+   - Highlight competitive advantages
+   - Note positive industry trends
 
-2. **Risk Factors**
-   - Catalog all identified risks
-   - Assess probability and impact
-   - Note any emerging threats
+2. **Valuation Opportunity**
+   - Explain why current price offers value
+   - Compare to peers and historical valuations
+   - Project upside potential
 
-3. **Growth Headwinds**
-   - Identify slowing growth indicators
-   - Note competitive pressures
-   - Highlight market saturation risks
+3. **Risk Mitigation**
+   - Address identified risks
+   - Explain why risks are overstated or temporary
+   - Highlight management quality and track record
 
-4. **Catalysts for Decline**
-   - Identify potential negative triggers
-   - Note technical breakdown levels
-   - Highlight deteriorating sentiment
+4. **Contrarian Opportunities**
+   - Identify market overreactions or misunderstandings
+   - Point to overlooked strengths
+   - Highlight inflection points
 
 ## If Opposing View Provided
 
-You MUST directly respond to the bullish arguments:
-- Address each optimistic point with counter-evidence
-- Explain why the bullish view is overlooking critical risks
-- Demonstrate why the downside scenario is more likely
+You MUST directly respond to the bearish arguments:
+- Address each concern with data
+- Explain why the pessimistic view is incomplete or incorrect
+- Turn bearish concerns into bullish opportunities where possible
 
 ## Output Format
 
@@ -61,25 +61,25 @@ Respond in the following JSON format:
 
 ```json
 {
-  "view": "bearish",
-  "confidence": 0.75,
-  "argument": "Your comprehensive bearish argument...",
+  "view": "bullish",
+  "confidence": 0.85,
+  "argument": "Your comprehensive bullish argument...",
   "key_points": [
-    "Key risk 1 with specific data",
-    "Key risk 2 with specific data",
-    "Key risk 3 with specific data"
+    "Key point 1 with specific data",
+    "Key point 2 with specific data",
+    "Key point 3 with specific data"
   ],
-  "response_to_bull": "Direct response to bullish arguments...",
-  "downside_target": "Price target or % downside",
+  "response_to_bear": "Direct response to bearish arguments...",
+  "upside_target": "Price target or % upside",
   "time_horizon": "short_term|medium_term|long_term"
 }
 ```
 
-Be skeptical but grounded in data. Your goal is to protect capital by identifying risks."""
+Be enthusiastic but grounded in data. Your goal is to present the strongest possible bullish case."""
 
 
-class BearResearcher:
-    """看空研究员"""
+class BullResearcher:
+    """看多研究员"""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or {}
@@ -92,21 +92,21 @@ class BearResearcher:
             return OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         raise ValueError(f"Unsupported LLM provider: {provider}")
     
-    def research(self,
+    def research(self, 
         symbol: str,
         analyst_reports: Dict[str, AnalystReport],
         opponent_argument: Optional[str] = None,
         round_num: int = 1,
         trace_id: str = ""
     ) -> Dict[str, Any]:
-        """执行看空研究"""
+        """执行看多研究"""
         
         prompt = self._build_prompt(symbol, analyst_reports, opponent_argument, round_num)
         
         response = self.llm_client.chat.completions.create(
             model=self.config.get("model", "gpt-4o"),
             messages=[
-                {"role": "system", "content": BEAR_RESEARCHER_PROMPT},
+                {"role": "system", "content": BULL_RESEARCHER_PROMPT},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
@@ -122,6 +122,7 @@ class BearResearcher:
     def _build_prompt(self, symbol: str, reports: Dict, opponent: Optional[str], round_num: int) -> str:
         """构建提示词"""
         
+        # 整理分析师报告
         reports_text = []
         for agent_type, report in reports.items():
             if report:
@@ -136,14 +137,14 @@ class BearResearcher:
         opponent_section = ""
         if opponent and round_num > 1:
             opponent_section = f"""
-## BULLISH ARGUMENT TO RESPOND TO
+## BEARISH ARGUMENT TO RESPOND TO
 
 {opponent}
 
-You MUST directly address these bullish points in your response.
+You MUST directly address these bearish points in your response.
 """
         
-        prompt = f"""Construct a BEARISH risk assessment for {symbol}.
+        prompt = f"""Construct a BULLISH investment case for {symbol}.
 
 {chr(10).join(reports_text)}
 
@@ -152,8 +153,8 @@ You MUST directly address these bullish points in your response.
 ## Instructions
 
 Round: {round_num}
-Construct the strongest possible bearish argument based on the research data.
-{"Address and refute the bullish claims directly." if opponent else "Anticipate potential bullish claims and address them proactively."}
+Construct the strongest possible bullish argument based on the research data.
+{"Address and refute the bearish concerns directly." if opponent else "Anticipate potential bearish concerns and address them proactively."}
 
 Provide your analysis in the specified JSON format."""
         
@@ -161,10 +162,11 @@ Provide your analysis in the specified JSON format."""
 
 
 if __name__ == "__main__":
-    print("Testing Bear Researcher...")
+    print("Testing Bull Researcher...")
     
-    researcher = BearResearcher()
+    researcher = BullResearcher()
     
+    # 模拟测试
     test_reports = {
         "fundamental": AnalystReport(
             agent_type=AgentType.FUNDAMENTAL,
@@ -182,5 +184,6 @@ if __name__ == "__main__":
         trace_id="test-001"
     )
     
-    print(f"Bear View: {result['view']}")
+    print(f"Bull View: {result['view']}")
     print(f"Confidence: {result['confidence']}")
+    print(f"Key Points: {result.get('key_points', [])}")

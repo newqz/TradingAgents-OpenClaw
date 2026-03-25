@@ -5,7 +5,7 @@ Phase 1 测试脚本 - 简化版
 """
 
 import sys
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw')
+sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw')
 
 print("=" * 60)
 print("TradingAgents-OpenClaw Phase 1 测试")
@@ -74,7 +74,7 @@ print("💬 测试 2: 飞书适配器")
 print("-" * 60)
 
 try:
-    sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/master-agent')
+    sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw/master-agent')
     from feishu_adapter import FeishuAdapter
     
     # 测试指令解析 - 支持美股、A股、港股
@@ -143,7 +143,7 @@ try:
     ]
     
     for file_path in files_to_check:
-        full_path = f"/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/{file_path}"
+        full_path = f"/root/.openclaw/workspace/TradingAgents-OpenClaw/{file_path}"
         if os.path.exists(full_path):
             size = os.path.getsize(full_path)
             print(f"✅ {file_path} ({size} bytes)")
@@ -152,7 +152,7 @@ try:
     
     # 测试股票代码分类器
     print("\n📈 测试股票代码分类器:")
-    sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw/skills/skill-tao-data')
+    sys.path.insert(0, '/root/.openclaw/workspace/TradingAgents-OpenClaw/skills/skill-tao-data')
     from data_provider import SymbolClassifier
     
     test_symbols = [

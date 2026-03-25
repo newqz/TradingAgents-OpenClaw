@@ -8,8 +8,6 @@ import json
 from typing import Any, Dict, Optional
 from abc import ABC, abstractmethod
 
-import sys
-sys.path.insert(0, '/root/.openclaw-coding/workspace/TradingAgents-OpenClaw')
 from shared.models import TraderRecommendation, TradingAction, ResearchSummary
 
 
