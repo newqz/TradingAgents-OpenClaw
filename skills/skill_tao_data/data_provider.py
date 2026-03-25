@@ -38,7 +38,7 @@ TOOLS_CATEGORIES = {
 }
 
 # 供应商列表
-VENDOR_LIST = ["yfinance", "alpha_vantage", "finnhub", "tushare", "china_stock"]
+VENDOR_LIST = ["yfinance", "alpha_vantage", "finnhub", "tushare", "china_stock", "sina_stock"]
 
 
 class CacheManager:
@@ -128,11 +128,14 @@ class SymbolClassifier:
         
         # 根据股票类型选择供应商优先级
         # US stocks: yfinance → alpha_vantage → finnhub
-        # A-shares: tushare → china_stock (akshare)
+        # A-shares: sina_stock → tushare → china_stock
+        #   - sina_stock: 实时行情，快速响应
+        #   - tushare: 专业A股数据，有基本面
+        #   - china_stock: akshare，备用
         # HK stocks: china_stock
         vendor_map = {
             "us_stock": "yfinance",
-            "a_stock": "tushare",      # TuShare 优先 (更专业的A股数据)
+            "a_stock": "sina_stock",  # Sina 优先 (实时行情)
             "hk_stock": "china_stock"
         }
         
@@ -180,6 +183,7 @@ class DataProvider:
         china_stock_mod = _load_vendor("china_stock_client")
         finnhub_mod = _load_vendor("finnhub_client")
         tushare_mod = _load_vendor("tushare_client")
+        sina_stock_mod = _load_vendor("sina_stock_client")
         
         # 初始化供应商客户端
         self._vendors = {
@@ -197,6 +201,7 @@ class DataProvider:
                        os.getenv("TUSHARE_TOKEN")
             ) if tushare_mod else None,
             "china_stock": china_stock_mod.ChinaStockClient() if china_stock_mod else None,
+            "sina_stock": sina_stock_mod.SinaStockClient() if sina_stock_mod else None,
         }
         
         # 保存供应商模块引用用于方法映射
@@ -206,6 +211,7 @@ class DataProvider:
             "finnhub": finnhub_mod,
             "tushare": tushare_mod,
             "china_stock": china_stock_mod,
+            "sina_stock": sina_stock_mod,
         }
         
         # 供应商方法映射 (动态构建)
@@ -228,6 +234,7 @@ class DataProvider:
         ChinaStockClient = _get_vendor_class("china_stock")
         FinnhubClient = _get_vendor_class("finnhub")
         TuShareClient = _get_vendor_class("tushare")
+        SinaStockClient = _get_vendor_class("sina_stock")
         
         return {
             # core_stock_apis
@@ -237,6 +244,7 @@ class DataProvider:
                 "finnhub": FinnhubClient.get_stock_data if FinnhubClient else None,
                 "tushare": TuShareClient.get_stock_data if TuShareClient else None,
                 "china_stock": ChinaStockClient.get_stock_data if ChinaStockClient else None,
+                "sina_stock": SinaStockClient.get_stock_data if SinaStockClient else None,
             },
             # technical_indicators
             "get_indicators": {
@@ -345,7 +353,9 @@ class DataProvider:
                 # 调用供应商方法
                 if hasattr(vendor, method):
                     method_func = getattr(vendor, method)
-                    result = method_func(*args, **kwargs)
+                    # 将symbol传递给vendor方法
+                    call_kwargs = {"symbol": symbol, **kwargs}
+                    result = method_func(*args, **call_kwargs)
                     
                     # 缓存结果
                     self.cache.set(method, result, symbol, *args, **kwargs)
@@ -397,7 +407,6 @@ class DataProvider:
         return self._route_to_vendor(
             "get_stock_data",
             symbol,
-            symbol=symbol,
             period=period,
             interval=interval,
             start=start,
@@ -414,7 +423,7 @@ class DataProvider:
         Returns:
             基本面数据字典
         """
-        return self._route_to_vendor("get_fundamentals", symbol, symbol=symbol)
+        return self._route_to_vendor("get_fundamentals", symbol)
     
     def get_balance_sheet(
         self,
@@ -425,7 +434,6 @@ class DataProvider:
         return self._route_to_vendor(
             "get_balance_sheet",
             symbol,
-            symbol=symbol,
             freq=freq
         )
     
@@ -438,7 +446,6 @@ class DataProvider:
         return self._route_to_vendor(
             "get_income_statement",
             symbol,
-            symbol=symbol,
             freq=freq
         )
     
@@ -451,7 +458,6 @@ class DataProvider:
         return self._route_to_vendor(
             "get_cashflow",
             symbol,
-            symbol=symbol,
             freq=freq
         )
     
@@ -476,7 +482,6 @@ class DataProvider:
         return self._route_to_vendor(
             "get_indicators",
             symbol,
-            symbol=symbol,
             indicators=indicators,
             period=period,
             **kwargs
@@ -491,7 +496,6 @@ class DataProvider:
         return self._route_to_vendor(
             "get_news",
             symbol,
-            symbol=symbol,
             limit=limit
         )
     
@@ -503,8 +507,7 @@ class DataProvider:
         """获取内部人交易数据"""
         return self._route_to_vendor(
             "get_insider_transactions",
-            symbol,
-            symbol=symbol
+            symbol
         )
     
     def classify_symbol(self, symbol: str) -> str:

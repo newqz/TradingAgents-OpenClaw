@@ -5,6 +5,7 @@ from .alpha_vantage_client import AlphaVantageClient
 from .china_stock_client import ChinaStockClient
 from .finnhub_client import FinnhubClient
 from .tushare_client import TuShareClient
+from .sina_stock_client import SinaStockClient
 
 __all__ = [
     "BaseVendor",
@@ -13,4 +14,5 @@ __all__ = [
     "ChinaStockClient",
     "FinnhubClient",
     "TuShareClient",
+    "SinaStockClient",
 ]
