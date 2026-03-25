@@ -92,7 +92,32 @@ class MarketSignal:
 
 | Phase | Skill | Status | Start Date | End Date | Notes |
 |-------|-------|--------|------------|----------|-------|
-| 4a | eastmoney-stock | 🔄 In Progress | 2026-03-25 | - | - |
+| 4a | eastmoney-stock (SinaStock) | ✅ Completed | 2026-03-25 | 2026-03-25 | 使用Sina Finance API |
 | 4b | crypto-trader | ⏳ Pending | - | - | - |
 | 4c | weibo-trending | ⏳ Pending | - | - | - |
 | 4d | crypto-market-data | ⏳ Pending | - | - | - |
+
+## Completed Milestones
+
+### Phase 4a: SinaStockClient ✅
+**Date**: 2026-03-25
+**Commit**: 48ef94e
+
+**Features Implemented**:
+- Real-time A-share quotes via Sina Finance API
+- Batch quote support (get_quote)
+- Market overview (index quotes)
+- Stock search functionality
+- Symbol normalization (sh/sz/hk/us_ prefixes)
+- Automatic fallback to other vendors
+
+**Testing Results**:
+```
+Testing 600519 (贵州茅台): Price ¥1408.81, Change +0.11% ✅
+Testing 000001 (平安银行): Price ¥10.88, Change 0.00% ✅
+```
+
+**Files Changed**:
+- `skills/skill_tao_data/vendors/sina_stock_client.py` (NEW)
+- `skills/skill_tao_data/vendors/__init__.py` (MODIFIED)
+- `skills/skill_tao_data/data_provider.py` (MODIFIED)
