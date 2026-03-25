@@ -375,15 +375,15 @@ class ModelSelector:
     根据任务类型自动选择最佳模型
     """
     
-    # 任务到模型的默认映射
+    # 任务到模型的默认映射 (Updated 2026-03-25 - using latest models)
     DEFAULT_TASK_MODEL = {
-        "fundamental_analysis": "openai/gpt-4o",
-        "technical_analysis": "openai/gpt-4o-mini",
-        "sentiment_analysis": "openai/gpt-4o-mini",
+        "fundamental_analysis": "openai/gpt-5.4",
+        "technical_analysis": "openai/gpt-5.4-mini",
+        "sentiment_analysis": "openai/gpt-5.4-mini",
         "research_debate": "anthropic/claude-opus-4.6",
         "risk_assessment": "anthropic/claude-sonnet-4.6",
-        "trading_decision": "openai/gpt-4o",
-        "summary": "openai/gpt-4o-mini",
+        "trading_decision": "openai/gpt-5.4",
+        "summary": "openai/gpt-5.4-mini",
     }
     
     def __init__(self, config: Optional[Dict[str, str]] = None):
@@ -433,9 +433,71 @@ class ModelSelector:
 
 # 预注册模型
 def _register_default_models():
-    """注册默认模型库"""
+    """注册默认模型库 - Updated 2026-03-25"""
     models = [
-        # OpenAI Models
+        # =============================================
+        # OpenAI Models (GPT-5 Series - Latest!)
+        # =============================================
+        ModelInfo(
+            name="gpt-5.4",
+            provider="openai",
+            context_window=200000,
+            max_output=32768,
+            cost_per_1k_input=0.010,
+            cost_per_1k_output=0.030,
+            capabilities=["reasoning", "vision", "function_calling", "data_analysis", "coding", "complex_analysis"],
+            quality_tier="premium"
+        ),
+        ModelInfo(
+            name="gpt-5.4-thinking",
+            provider="openai",
+            context_window=200000,
+            max_output=65536,
+            cost_per_1k_input=0.015,
+            cost_per_1k_output=0.060,
+            capabilities=["reasoning", "extended_thinking", "complex_analysis", "coding"],
+            quality_tier="premium"
+        ),
+        ModelInfo(
+            name="gpt-5.4-mini",
+            provider="openai",
+            context_window=128000,
+            max_output=16384,
+            cost_per_1k_input=0.00015,
+            cost_per_1k_output=0.0006,
+            capabilities=["reasoning", "fast", "function_calling"],
+            quality_tier="standard"
+        ),
+        ModelInfo(
+            name="gpt-5.4-nano",
+            provider="openai",
+            context_window=64000,
+            max_output=8192,
+            cost_per_1k_input=0.00003,
+            cost_per_1k_output=0.0001,
+            capabilities=["fast", "simple_tasks"],
+            quality_tier="budget"
+        ),
+        ModelInfo(
+            name="gpt-5.3-thinking",
+            provider="openai",
+            context_window=200000,
+            max_output=32768,
+            cost_per_1k_input=0.012,
+            cost_per_1k_output=0.050,
+            capabilities=["reasoning", "extended_thinking", "complex_analysis"],
+            quality_tier="premium"
+        ),
+        ModelInfo(
+            name="gpt-5.2-thinking",
+            provider="openai",
+            context_window=200000,
+            max_output=32768,
+            cost_per_1k_input=0.010,
+            cost_per_1k_output=0.040,
+            capabilities=["reasoning", "extended_thinking", "complex_analysis"],
+            quality_tier="premium"
+        ),
         ModelInfo(
             name="gpt-4o",
             provider="openai",
@@ -456,55 +518,27 @@ def _register_default_models():
             capabilities=["reasoning", "fast", "function_calling"],
             quality_tier="standard"
         ),
-        ModelInfo(
-            name="gpt-4-turbo",
-            provider="openai",
-            context_window=128000,
-            max_output=16384,
-            cost_per_1k_input=0.01,
-            cost_per_1k_output=0.03,
-            capabilities=["reasoning", "vision", "function_calling"],
-            quality_tier="premium"
-        ),
-        ModelInfo(
-            name="o1-preview",
-            provider="openai",
-            context_window=128000,
-            max_output=32768,
-            cost_per_1k_input=0.015,
-            cost_per_1k_output=0.06,
-            capabilities=["reasoning", "research", "complex_analysis"],
-            quality_tier="premium"
-        ),
-        ModelInfo(
-            name="o1-mini",
-            provider="openai",
-            context_window=128000,
-            max_output=32768,
-            cost_per_1k_input=0.003,
-            cost_per_1k_output=0.012,
-            capabilities=["reasoning", "fast"],
-            quality_tier="standard"
-        ),
-        # Anthropic Models
+        # =============================================
+        # Anthropic Models (Claude 4.6 Series - Feb 2026!)
+        # =============================================
         ModelInfo(
             name="claude-opus-4.6",
             provider="anthropic",
             context_window=200000,
-            max_output=4096,
+            max_output=8192,
             cost_per_1k_input=0.015,
             cost_per_1k_output=0.075,
-            capabilities=["reasoning", "research", "debate", "complex_analysis"],
+            capabilities=["reasoning", "research", "debate", "complex_analysis", "coding"],
             quality_tier="premium"
         ),
         ModelInfo(
             name="claude-sonnet-4.6",
             provider="anthropic",
             context_window=200000,
-            max_output=4096,
+            max_output=8192,
             cost_per_1k_input=0.003,
             cost_per_1k_output=0.015,
-            capabilities=["reasoning", "fast", "analysis"],
+            capabilities=["reasoning", "fast", "analysis", "coding"],
             quality_tier="standard"
         ),
         ModelInfo(
@@ -527,19 +561,31 @@ def _register_default_models():
             capabilities=["reasoning", "fast"],
             quality_tier="budget"
         ),
-        # Google Models
+        # =============================================
+        # Google Models (Gemini 3 Series - Latest!)
+        # =============================================
         ModelInfo(
-            name="gemini-2.0-flash-exp",
+            name="gemini-3",
             provider="google",
-            context_window=1000000,
-            max_output=8192,
+            context_window=2000000,
+            max_output=32768,
             cost_per_1k_input=0.0,
             cost_per_1k_output=0.0,
-            capabilities=["reasoning", "fast", "vision", "large_context"],
+            capabilities=["reasoning", "vision", "large_context", "research", "complex_analysis", "coding"],
             quality_tier="premium"
         ),
         ModelInfo(
-            name="gemini-1.5-flash",
+            name="gemini-3.1-flash",
+            provider="google",
+            context_window=1000000,
+            max_output=16384,
+            cost_per_1k_input=0.0,
+            cost_per_1k_output=0.0,
+            capabilities=["reasoning", "fast", "vision", "large_context"],
+            quality_tier="standard"
+        ),
+        ModelInfo(
+            name="gemini-2.0-flash-exp",
             provider="google",
             context_window=1000000,
             max_output=8192,
@@ -558,25 +604,93 @@ def _register_default_models():
             capabilities=["reasoning", "vision", "large_context", "research"],
             quality_tier="premium"
         ),
-        # xAI Models
         ModelInfo(
-            name="grok-2-1212",
+            name="gemini-1.5-flash",
+            provider="google",
+            context_window=1000000,
+            max_output=8192,
+            cost_per_1k_input=0.0,
+            cost_per_1k_output=0.0,
+            capabilities=["reasoning", "fast", "vision", "large_context"],
+            quality_tier="standard"
+        ),
+        # =============================================
+        # xAI Models (Grok 4 Series)
+        # =============================================
+        ModelInfo(
+            name="grok-4",
             provider="xai",
             context_window=131072,
-            max_output=8192,
+            max_output=16384,
+            cost_per_1k_input=0.001,
+            cost_per_1k_output=0.004,
+            capabilities=["reasoning", "real_time", "coding"],
+            quality_tier="premium"
+        ),
+        ModelInfo(
+            name="grok-3",
+            provider="xai",
+            context_window=131072,
+            max_output=16384,
             cost_per_1k_input=0.0005,
             cost_per_1k_output=0.002,
-            capabilities=["reasoning", "fast", "real_time"],
+            capabilities=["reasoning", "real_time"],
             quality_tier="standard"
         ),
         ModelInfo(
-            name="grok-2-vision-1212",
+            name="grok-code-fast-1",
             provider="xai",
             context_window=32768,
             max_output=8192,
+            cost_per_1k_input=0.0001,
+            cost_per_1k_output=0.0004,
+            capabilities=["coding", "fast", "agentic"],
+            quality_tier="standard"
+        ),
+        # =============================================
+        # DeepSeek (Reasoning Models)
+        # =============================================
+        ModelInfo(
+            name="deepseek-r1",
+            provider="deepseek",
+            context_window=64000,
+            max_output=8192,
+            cost_per_1k_input=0.0001,
+            cost_per_1k_output=0.0003,
+            capabilities=["reasoning", "complex_analysis", "math"],
+            quality_tier="premium"
+        ),
+        ModelInfo(
+            name="deepseek-chat",
+            provider="deepseek",
+            context_window=32000,
+            max_output=8192,
+            cost_per_1k_input=0.00007,
+            cost_per_1k_output=0.0002,
+            capabilities=["reasoning", "coding", "fast"],
+            quality_tier="standard"
+        ),
+        # =============================================
+        # Mistral AI
+        # =============================================
+        ModelInfo(
+            name="mistral-large",
+            provider="mistral",
+            context_window=128000,
+            max_output=16384,
             cost_per_1k_input=0.002,
-            cost_per_1k_output=0.002,
-            capabilities=["reasoning", "vision"],
+            cost_per_1k_output=0.006,
+            capabilities=["reasoning", "coding", "multilingual"],
+            quality_tier="premium"
+        ),
+        ModelInfo(
+            name="mistral-small",
+            provider="mistral",
+            context_window=32000,
+            max_output=8192,
+            cost_per_1k_input=0.0002,
+            cost_per_1k_output=0.0006,
+            capabilities=["reasoning", "fast", "multilingual"],
             quality_tier="standard"
         ),
     ]
@@ -585,7 +699,7 @@ def _register_default_models():
         ModelRegistry.register(m)
 
 
-# 注册默认模型
+# Register default models
 _register_default_models()
 
 
